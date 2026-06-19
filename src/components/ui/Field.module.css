@@ -1,0 +1,100 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.hint {
+  font-size: 11px;
+  color: var(--faint);
+}
+.input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 13px 14px;
+  color: var(--text);
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input:focus {
+  border-color: var(--accent);
+}
+.textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 4px 0;
+}
+.knob {
+  width: 44px;
+  height: 26px;
+  border-radius: 14px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  position: relative;
+  transition: background 0.18s;
+  flex-shrink: 0;
+}
+.knob::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.18s, background 0.18s;
+}
+.toggleOn {
+  color: var(--text);
+}
+.toggleOn .knob {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.toggleOn .knob::after {
+  transform: translateX(18px);
+  background: var(--accent);
+}
+.segmented {
+  display: flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  gap: 4px;
+}
+.segmented button {
+  flex: 1;
+  padding: 9px 6px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  transition: all 0.15s;
+}
+.segActive {
+  background: var(--accent);
+  color: #0e0f12 !important;
+}
