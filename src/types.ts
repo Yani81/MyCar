@@ -43,6 +43,10 @@ export interface Expense {
   place?: string
   driver?: string
   notes?: string
+  oilType?: string
+  oilFilterChanged?: boolean
+  fuelFilterChanged?: boolean
+  airFilterChanged?: boolean
 }
 
 export interface Income {

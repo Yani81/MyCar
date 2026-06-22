@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, type ChangeEvent } from 'react'
 import styles from './Field.module.css'
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
@@ -37,6 +37,27 @@ export function Toggle({
       <span className={styles.knob} />
       <span>{label}</span>
     </button>
+  )
+}
+
+export function CheckGroup({
+  items,
+}: {
+  items: { label: string; checked: boolean; onChange: (v: boolean) => void }[]
+}) {
+  return (
+    <div className={styles.checkGroup}>
+      {items.map((item) => (
+        <label key={item.label} className={styles.checkItem}>
+          <input
+            type="checkbox"
+            checked={item.checked}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => item.onChange(e.target.checked)}
+          />
+          <span>{item.label}</span>
+        </label>
+      ))}
+    </div>
   )
 }
 

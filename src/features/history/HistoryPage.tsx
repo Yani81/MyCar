@@ -43,7 +43,7 @@ export function HistoryPage() {
       items.push({
         id: r.id, date: r.date, color: '#f5821f', Icon: IconFuel,
         title: multi ? `Зареждане · ${FUEL_LABELS[r.fuelType]}` : 'Зареждане',
-        subtitle: `${km(r.odometer)}${r.station ? ' · ' + r.station : ''}`,
+        subtitle: `${km(r.odometer)}${r.station ? ' · ' + r.station : ''}${r.notes ? ' · ' + r.notes : ''}`,
         amount: r.total, positive: false, open: { type: 'refuel', entry: r },
       })
     )
