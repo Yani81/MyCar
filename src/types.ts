@@ -27,6 +27,7 @@ export interface Refuel {
   station?: string
   driver?: string
   notes?: string
+  receiptImage?: string
 }
 
 export type ExpenseKind = 'service' | 'expense'

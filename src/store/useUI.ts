@@ -10,18 +10,24 @@ export type FormOpen =
   | { type: 'odometer'; entry: OdometerReading | null }
   | { type: 'reminder'; entry: Reminder | null }
 
+export type HistoryFilter = 'refuel' | 'expense' | 'service' | 'income' | 'trip' | 'odometer'
+
 interface UI {
   form: FormOpen | null
   menuOpen: boolean
+  historyFilter: HistoryFilter | null
   openForm: (f: FormOpen) => void
   closeForm: () => void
   setMenu: (v: boolean) => void
+  setHistoryFilter: (f: HistoryFilter | null) => void
 }
 
 export const useUI = create<UI>((set) => ({
   form: null,
   menuOpen: false,
+  historyFilter: null,
   openForm: (form) => set({ form, menuOpen: false }),
   closeForm: () => set({ form: null }),
   setMenu: (menuOpen) => set({ menuOpen }),
+  setHistoryFilter: (historyFilter) => set({ historyFilter }),
 }))

@@ -1,10 +1,31 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, selectClass, Toggle } from '../../components/ui/Field'
 import { useStore } from '../../store/useStore'
 import { todayISO } from '../../lib/format'
 import { FUEL_LABELS, type Refuel, type FuelType } from '../../types'
 import { FormFooter } from '../../components/ui/FormFooter'
+import styles from './RefuelForm.module.css'
+
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 1000
+        const ratio = Math.min(MAX / img.width, MAX / img.height, 1)
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width * ratio
+        canvas.height = img.height * ratio
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', 0.75))
+      }
+      img.src = e.target!.result as string
+    }
+    reader.readAsDataURL(file)
+  })
+}
 
 export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; edit: Refuel | null; onClose: () => void }) {
   const vehicle = useStore((s) => s.vehicles.find((v) => v.id === vehicleId))
@@ -24,6 +45,8 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
   const [station, setStation] = useState(edit?.station ?? '')
   const [driver, setDriver] = useState(edit?.driver ?? '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
+  const [receiptImage, setReceiptImage] = useState(edit?.receiptImage ?? '')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const onLiters = (val: string) => {
     setLiters(val)
@@ -57,6 +80,7 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
       station: station.trim() || undefined,
       driver: driver.trim() || undefined,
       notes: notes.trim() || undefined,
+      receiptImage: receiptImage || undefined,
     }
     if (edit) updateRefuel(edit.id, payload)
     else addRefuel(payload)
@@ -112,6 +136,35 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
       <Field label="Бележка (по избор)">
         <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          if (file) setReceiptImage(await compressImage(file))
+          e.target.value = ''
+        }}
+      />
+      <div className={styles.receiptSection}>
+        {receiptImage ? (
+          <div className={styles.receiptPreview}>
+            <img
+              src={receiptImage}
+              className={styles.receiptThumb}
+              alt="Касова бележка"
+              onClick={() => fileInputRef.current?.click()}
+            />
+            <button type="button" className={styles.receiptRemove} onClick={() => setReceiptImage('')}>✕</button>
+          </div>
+        ) : (
+          <button type="button" className={styles.receiptBtn} onClick={() => fileInputRef.current?.click()}>
+            Прикачи бележка
+          </button>
+        )}
+      </div>
     </Modal>
   )
 }
