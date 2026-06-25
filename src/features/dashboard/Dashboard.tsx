@@ -73,7 +73,7 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
       <div className={styles.grid}>
         <Stat label="Баланс" value={money(stats.balance)} />
         <Stat label="Цена / км" value={stats.costPerKm !== null ? money(stats.costPerKm) : '—'} />
-        <Stat label="За гориво" value={money(stats.totalFuelCost)} accent />
+        <Stat label="За гориво" value={money(stats.totalFuelCost)} />
         <Stat label="Приход" value={money(stats.totalIncome)} />
       </div>
 
