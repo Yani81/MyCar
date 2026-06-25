@@ -52,7 +52,7 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
   }, [v, refuels, expenses, incomes, trips, readings, reminders])
 
   if (!v || !d) return null
-  const { stats, nextRem, recent, lastRefuel, lastKm } = d
+  const { stats, nextRem, recent } = d
 
   return (
     <div className={styles.wrap}>

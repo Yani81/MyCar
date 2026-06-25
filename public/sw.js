@@ -29,7 +29,7 @@ self.addEventListener('fetch', (e) => {
           caches.open(CACHE).then((c) => c.put(req, copy))
           return res
         })
-        .catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
+        .catch(() => caches.match(req).then((r) => r || caches.match(self.registration.scope)))
     )
     return
   }
