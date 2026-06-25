@@ -3,7 +3,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, selectClass, textareaClass, Toggle, Segmented, CheckGroup } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore } from '../../store/useStore'
-import { todayISO } from '../../lib/format'
+import { todayISO, toNumStr } from '../../lib/format'
 import { EXPENSE_CATEGORIES, type Expense, type ExpenseKind, type ReminderBasis } from '../../types'
 
 export function ExpenseForm({
@@ -119,7 +119,7 @@ export function ExpenseForm({
       </Field>
       <Row>
         <Field label="Сума (€)">
-          <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0.00" />
+          <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(toNumStr(e.target.value))} placeholder="0.00" />
         </Field>
         <Field label="Дата">
           <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />

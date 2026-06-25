@@ -3,7 +3,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, selectClass } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore } from '../../store/useStore'
-import { todayISO } from '../../lib/format'
+import { todayISO, toNumStr } from '../../lib/format'
 import { INCOME_CATEGORIES, type Income } from '../../types'
 
 export function IncomeForm({ vehicleId, edit, onClose }: { vehicleId: string; edit: Income | null; onClose: () => void }) {
@@ -52,7 +52,7 @@ export function IncomeForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
       </Field>
       <Row>
         <Field label="Сума (€)">
-          <input className={inputClass} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
+          <input className={inputClass} inputMode="decimal" value={amount} onChange={(e) => setAmount(toNumStr(e.target.value))} placeholder="0.00" />
         </Field>
         <Field label="Дата">
           <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />

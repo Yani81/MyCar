@@ -29,6 +29,13 @@
 .input:focus {
   border-color: var(--accent);
 }
+.input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
 .textarea {
   resize: vertical;
   min-height: 64px;
@@ -44,7 +51,6 @@
 .row .input {
   padding-left: 10px;
   padding-right: 10px;
-  font-size: 15px;
 }
 .toggle {
   display: flex;

@@ -40,12 +40,12 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
       .sort((a, b) => ({ overdue: 0, soon: 1, ok: 2 }[a.info.status] - { overdue: 0, soon: 1, ok: 2 }[b.info.status]))[0]
 
     const recent = [
-      ...data.refuels.map((r) => ({ id: r.id, Icon: IconFuel, cls: 'fuel', date: r.date, label: `${num(r.liters, 2)} л · ${num(r.pricePerLiter, 2)} €/л`, sub: `${FUEL_LABELS[r.fuelType]}${r.station ? ` · ${r.station}` : ''}`, amount: r.total, pos: false, open: { type: 'refuel', entry: r } as FormOpen })),
-      ...data.expenses.map((e) => ({ id: e.id, Icon: IconWrench, cls: e.kind === 'service' ? 'service' : 'exp', date: e.date, label: e.title || e.category, sub: e.place || '', amount: e.cost, pos: false, open: { type: e.kind === 'service' ? 'service' : 'expense', entry: e } as FormOpen })),
-      ...data.incomes.map((i) => ({ id: i.id, Icon: IconIncome, cls: 'income', date: i.date, label: i.category, sub: i.notes || '', amount: i.amount, pos: true, open: { type: 'income', entry: i } as FormOpen })),
-      ...data.trips.map((t) => ({ id: t.id, Icon: IconRoute, cls: 'trip', date: t.date, label: `${t.origin} → ${t.destination}`, sub: km(t.endOdometer - t.startOdometer), amount: t.total, pos: false, open: { type: 'trip', entry: t } as FormOpen })),
+      ...data.refuels.map((r) => ({ id: r.id, Icon: IconFuel, cls: 'fuel', date: r.date, odo: r.odometer, label: `${num(r.liters, 2)} л · ${num(r.pricePerLiter, 2)} €/л`, sub: `${FUEL_LABELS[r.fuelType]}${r.station ? ` · ${r.station}` : ''}`, amount: r.total, pos: false, open: { type: 'refuel', entry: r } as FormOpen })),
+      ...data.expenses.map((e) => ({ id: e.id, Icon: IconWrench, cls: e.kind === 'service' ? 'service' : 'exp', date: e.date, odo: e.odometer ?? 0, label: e.title || e.category, sub: e.place || '', amount: e.cost, pos: false, open: { type: e.kind === 'service' ? 'service' : 'expense', entry: e } as FormOpen })),
+      ...data.incomes.map((i) => ({ id: i.id, Icon: IconIncome, cls: 'income', date: i.date, odo: 0, label: i.category, sub: i.notes || '', amount: i.amount, pos: true, open: { type: 'income', entry: i } as FormOpen })),
+      ...data.trips.map((t) => ({ id: t.id, Icon: IconRoute, cls: 'trip', date: t.date, odo: t.endOdometer, label: `${t.origin} → ${t.destination}`, sub: km(t.endOdometer - t.startOdometer), amount: t.total, pos: false, open: { type: 'trip', entry: t } as FormOpen })),
     ]
-      .sort((a, b) => b.date.localeCompare(a.date))
+      .sort((a, b) => b.date.localeCompare(a.date) || b.odo - a.odo)
       .slice(0, 6)
 
     return { stats, nextRem, recent, lastRefuel, lastKm }

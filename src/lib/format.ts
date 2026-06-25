@@ -21,3 +21,5 @@ export const monthLabel = (key: string): string => {
 }
 
 export const todayISO = (): string => new Date().toISOString().slice(0, 10)
+
+export const toNumStr = (s: string): string => s.replace(',', '.')

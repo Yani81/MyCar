@@ -11,8 +11,8 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
   )
 }
 
-export function Row({ children }: { children: ReactNode }) {
-  return <div className={styles.row}>{children}</div>
+export function Row({ children, cols }: { children: ReactNode; cols?: string }) {
+  return <div className={styles.row} style={cols ? { gridTemplateColumns: cols } : undefined}>{children}</div>
 }
 
 export const inputClass = styles.input

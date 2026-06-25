@@ -2,11 +2,16 @@ import { useState, useRef, useMemo } from 'react'
 import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, selectClass, Toggle } from '../../components/ui/Field'
 import { useStore } from '../../store/useStore'
-import { todayISO, km } from '../../lib/format'
+import { todayISO, km, toNumStr } from '../../lib/format'
 import { FUEL_LABELS, type Refuel, type FuelType } from '../../types'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
 import styles from './RefuelForm.module.css'
+
+const DEFAULT_STATIONS = [
+  'BP', 'ЕКО', 'Газпром', 'Инса Ойл', 'Лукойл',
+  'OMV', 'Петрол', 'Ромпетрол', 'Shell', 'Тера',
+]
 
 function compressImage(file: File): Promise<string> {
   return new Promise((resolve) => {
@@ -44,6 +49,13 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
     return odos.length ? Math.max(...odos) : null
   }, [allRefuels, allReadings, vehicleId, edit?.id])
 
+  const stationOptions = useMemo(() => {
+    const custom = allRefuels
+      .filter((r) => r.vehicleId === vehicleId && r.station && !DEFAULT_STATIONS.includes(r.station))
+      .map((r) => r.station!)
+    return [...new Set([...DEFAULT_STATIONS, ...custom])].sort((a, b) => a.localeCompare(b, 'bg'))
+  }, [allRefuels, vehicleId])
+
   const fuels = vehicle?.fuels ?? ['petrol']
   const [date, setDate] = useState(edit?.date ?? todayISO())
   const [fuelType, setFuelType] = useState<FuelType>(edit?.fuelType ?? fuels[0])
@@ -53,7 +65,13 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
   const [total, setTotal] = useState(edit ? String(edit.total) : '')
   const [fullTank, setFullTank] = useState(edit?.fullTank ?? true)
   const [missedFill, setMissedFill] = useState(edit?.missedFill ?? false)
-  const [station, setStation] = useState(edit?.station ?? '')
+  const [stationPick, setStationPick] = useState<string>(
+    edit?.station ? (stationOptions.includes(edit.station) ? edit.station : '__new__') : ''
+  )
+  const [stationText, setStationText] = useState(
+    edit?.station && !stationOptions.includes(edit.station) ? edit.station : ''
+  )
+  const station = stationPick === '__new__' ? stationText : stationPick
   const [driver, setDriver] = useState(edit?.driver ?? '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
   const [receiptImage, setReceiptImage] = useState(edit?.receiptImage ?? '')
@@ -61,16 +79,19 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const onLiters = (val: string) => {
+    val = toNumStr(val)
     setLiters(val)
     const p = parseFloat(price)
     if (val && !isNaN(p)) setTotal((parseFloat(val) * p).toFixed(2))
   }
   const onPrice = (val: string) => {
+    val = toNumStr(val)
     setPrice(val)
     const l = parseFloat(liters)
     if (val && !isNaN(l)) setTotal((parseFloat(val) * l).toFixed(2))
   }
   const onTotal = (val: string) => {
+    val = toNumStr(val)
     setTotal(val)
     const l = parseFloat(liters)
     if (val && l > 0) setPrice((parseFloat(val) / l).toFixed(3))
@@ -171,7 +192,18 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
         <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
       <Field label="Бензиностанция">
-        <input className={inputClass} value={station} onChange={(e) => setStation(e.target.value)} placeholder="напр. OMV" />
+        {stationPick !== '__new__' ? (
+          <select className={selectClass} value={stationPick} onChange={(e) => setStationPick(e.target.value)}>
+            <option value="">— без станция —</option>
+            {stationOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+            <option value="__new__">+ Добави нова...</option>
+          </select>
+        ) : (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input className={inputClass} style={{ flex: 1 }} value={stationText} onChange={(e) => setStationText(e.target.value)} placeholder="Напр. Тифон" autoFocus />
+            <button type="button" onClick={() => { setStationPick(''); setStationText('') }} style={{ fontSize: 18, color: 'var(--muted)', padding: '0 4px' }}>✕</button>
+          </div>
+        )}
       </Field>
       <Field label="Шофьор">
         <input className={inputClass} value={driver} onChange={(e) => setDriver(e.target.value)} />

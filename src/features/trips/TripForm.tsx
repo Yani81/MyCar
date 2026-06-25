@@ -2,21 +2,37 @@ import { useState } from 'react'
 import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
-import { useStore } from '../../store/useStore'
-import { todayISO, km, money } from '../../lib/format'
+import { useStore, useActiveVehicle } from '../../store/useStore'
+import { todayISO, km, money, num, toNumStr } from '../../lib/format'
+import { computeStats } from '../../lib/calculations'
 import type { Trip } from '../../types'
+import styles from './TripForm.module.css'
 
 export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit: Trip | null; onClose: () => void }) {
   const addTrip = useStore((s) => s.addTrip)
   const updateTrip = useStore((s) => s.updateTrip)
   const removeTrip = useStore((s) => s.removeTrip)
+  const v = useActiveVehicle()
+  const refuels  = useStore((s) => s.refuels.filter((r) => r.vehicleId === vehicleId))
+  const expenses = useStore((s) => s.expenses.filter((e) => e.vehicleId === vehicleId))
+  const incomes  = useStore((s) => s.incomes.filter((i) => i.vehicleId === vehicleId))
+  const allTrips = useStore((s) => s.trips.filter((t) => t.vehicleId === vehicleId))
+  const readings = useStore((s) => s.readings.filter((r) => r.vehicleId === vehicleId))
+
+  const stats = v ? computeStats(v, { refuels, expenses, incomes, trips: allTrips, readings }) : null
 
   const [origin, setOrigin] = useState(edit?.origin ?? '')
   const [destination, setDestination] = useState(edit?.destination ?? '')
   const [date, setDate] = useState(edit?.date ?? todayISO())
   const [startOdometer, setStart] = useState(edit ? String(edit.startOdometer) : '')
   const [endOdometer, setEnd] = useState(edit ? String(edit.endOdometer) : '')
-  const [costPerKm, setCostPerKm] = useState(edit?.costPerKm ? String(edit.costPerKm) : '')
+  const [costPerKm, setCostPerKm] = useState(
+    edit?.costPerKm
+      ? String(edit.costPerKm)
+      : stats?.fuelCostPerKm != null
+        ? stats.fuelCostPerKm.toFixed(3)
+        : ''
+  )
   const [reason, setReason] = useState(edit?.reason ?? '')
   const [driver, setDriver] = useState(edit?.driver ?? '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
@@ -72,12 +88,26 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
       </Row>
       <Row>
         <Field label="Стойност / км (по избор)">
-          <input className={inputClass} inputMode="decimal" value={costPerKm} onChange={(e) => setCostPerKm(e.target.value)} placeholder="0.00" />
+          <input className={inputClass} inputMode="decimal" value={costPerKm} onChange={(e) => setCostPerKm(toNumStr(e.target.value))} placeholder="0.000" />
         </Field>
         <Field label="Разстояние">
           <input className={inputClass} value={distance > 0 ? km(distance) : '—'} readOnly />
         </Field>
       </Row>
+      {(stats?.fuelCostPerKm != null || stats?.costPerKm != null) && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: -4 }}>
+          {stats?.fuelCostPerKm != null && (
+            <button type="button" className={styles.chip} onClick={() => setCostPerKm(stats.fuelCostPerKm!.toFixed(3))}>
+              Гориво: {num(stats.fuelCostPerKm, 3)} €/км
+            </button>
+          )}
+          {stats?.costPerKm != null && (
+            <button type="button" className={styles.chip} onClick={() => setCostPerKm(stats.costPerKm!.toFixed(3))}>
+              Всичко: {num(stats.costPerKm, 3)} €/км
+            </button>
+          )}
+        </div>
+      )}
       {total > 0 && <div style={{ fontSize: 13, color: 'var(--muted)' }}>Общо: <b style={{ color: 'var(--text)' }}>{money(total)}</b></div>}
       <Row>
         <Field label="Причина (по избор)">
