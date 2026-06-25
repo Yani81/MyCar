@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, selectClass, Toggle } from '../../components/ui/Field'
 import { useStore } from '../../store/useStore'
-import { todayISO } from '../../lib/format'
+import { todayISO, km } from '../../lib/format'
 import { FUEL_LABELS, type Refuel, type FuelType } from '../../types'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
@@ -33,6 +33,16 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
   const addRefuel = useStore((s) => s.addRefuel)
   const updateRefuel = useStore((s) => s.updateRefuel)
   const removeRefuel = useStore((s) => s.removeRefuel)
+  const allRefuels = useStore((s) => s.refuels)
+  const allReadings = useStore((s) => s.readings)
+
+  const lastOdo = useMemo(() => {
+    const odos = [
+      ...allRefuels.filter((r) => r.vehicleId === vehicleId && r.id !== edit?.id).map((r) => r.odometer),
+      ...allReadings.filter((r) => r.vehicleId === vehicleId).map((r) => r.odometer),
+    ]
+    return odos.length ? Math.max(...odos) : null
+  }, [allRefuels, allReadings, vehicleId, edit?.id])
 
   const fuels = vehicle?.fuels ?? ['petrol']
   const [date, setDate] = useState(edit?.date ?? todayISO())
@@ -97,8 +107,16 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
       onClose={onClose}
       footer={<FormFooter valid={valid} edit={!!edit} color="#f5821f" onSubmit={submit} onDelete={edit ? () => { removeRefuel(edit.id); onClose() } : undefined} deleteMsg="Изтриване на зареждането?" />}
     >
+      <Row>
+        <Field label="Дата">
+          <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+        <Field label="Километраж" hint={lastOdo ? `Последно: ${km(lastOdo)}` : undefined}>
+          <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
+        </Field>
+      </Row>
       {fuels.length > 1 && (
-        <Field label="Резервоар / гориво">
+        <Field label="Гориво">
           <select className={selectClass} value={fuelType} onChange={(e) => setFuelType(e.target.value as FuelType)}>
             {fuels.map((f) => (
               <option key={f} value={f}>{FUEL_LABELS[f]}</option>
@@ -106,38 +124,18 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
           </select>
         </Field>
       )}
-      <Row>
-        <Field label="Дата">
-          <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </Field>
-        <Field label="Километраж">
-          <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
-        </Field>
-      </Row>
-      <Row>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
         <Field label="Литри">
           <input className={inputClass} inputMode="decimal" value={liters} onChange={(e) => onLiters(e.target.value)} placeholder="0.00" />
         </Field>
-        <Field label="Цена / литър">
+        <Field label="Сума (€)">
+          <input className={inputClass} inputMode="decimal" value={total} onChange={(e) => onTotal(e.target.value)} placeholder="0.00" />
+        </Field>
+        <Field label="Цена/л">
           <input className={inputClass} inputMode="decimal" value={price} onChange={(e) => onPrice(e.target.value)} placeholder="0.000" />
         </Field>
-      </Row>
-      <Field label="Обща стойност (€)" hint="смята се автоматично, но може да се коригира">
-        <input className={inputClass} inputMode="decimal" value={total} onChange={(e) => onTotal(e.target.value)} placeholder="0.00" />
-      </Field>
+      </div>
       <Toggle checked={fullTank} onChange={setFullTank} label="Заредих догоре (пълен резервоар)" />
-      <Toggle checked={missedFill} onChange={setMissedFill} label="Пропуснах предходно зареждане" />
-      <Row>
-        <Field label="Бензиностанция">
-          <input className={inputClass} value={station} onChange={(e) => setStation(e.target.value)} placeholder="напр. OMV" />
-        </Field>
-        <Field label="Шофьор">
-          <input className={inputClass} value={driver} onChange={(e) => setDriver(e.target.value)} />
-        </Field>
-      </Row>
-      <Field label="Бележка (по избор)">
-        <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </Field>
       <input
         ref={fileInputRef}
         type="file"
@@ -169,6 +167,16 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
         )}
       </div>
       {showLightbox && <ImageLightbox src={receiptImage} onClose={() => setShowLightbox(false)} />}
+      <Field label="Бележка">
+        <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
+      </Field>
+      <Field label="Бензиностанция">
+        <input className={inputClass} value={station} onChange={(e) => setStation(e.target.value)} placeholder="напр. OMV" />
+      </Field>
+      <Field label="Шофьор">
+        <input className={inputClass} value={driver} onChange={(e) => setDriver(e.target.value)} />
+      </Field>
+      <Toggle checked={missedFill} onChange={setMissedFill} label="Пропуснах предходно зареждане" />
     </Modal>
   )
 }
