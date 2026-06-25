@@ -75,8 +75,36 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
   const [driver, setDriver] = useState(edit?.driver ?? '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
   const [receiptImage, setReceiptImage] = useState(edit?.receiptImage ?? '')
+  const [location, setLocation] = useState(edit?.location ?? '')
+  const [locLoading, setLocLoading] = useState(false)
+  const [locError, setLocError] = useState('')
   const [showLightbox, setShowLightbox] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) { setLocError('GPS не се поддържа'); return }
+    setLocLoading(true); setLocError('')
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}&accept-language=bg`,
+            { headers: { Accept: 'application/json' } }
+          )
+          const data = await res.json()
+          const a = data.address ?? {}
+          const parts = [a.road, a.house_number, a.city || a.town || a.village || a.county].filter(Boolean)
+          setLocation(parts.join(', ') || data.display_name || '')
+        } catch {
+          setLocError('Грешка при геокодиране')
+        } finally {
+          setLocLoading(false)
+        }
+      },
+      () => { setLocError('Достъпът до GPS е отказан'); setLocLoading(false) },
+      { timeout: 10000 }
+    )
+  }
 
   const onLiters = (val: string) => {
     val = toNumStr(val)
@@ -114,6 +142,7 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
       driver: driver.trim() || undefined,
       notes: notes.trim() || undefined,
       receiptImage: receiptImage || undefined,
+      location: location.trim() || undefined,
     }
     if (edit) updateRefuel(edit.id, payload)
     else addRefuel(payload)
@@ -207,6 +236,26 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
       </Field>
       <Field label="Шофьор">
         <input className={inputClass} value={driver} onChange={(e) => setDriver(e.target.value)} />
+      </Field>
+      <Field label="Локация">
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            className={inputClass}
+            style={{ flex: 1 }}
+            value={locLoading ? 'Засича...' : location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="напр. бул. Витоша 45, София"
+            readOnly={locLoading}
+          />
+          <button
+            type="button"
+            onClick={detectLocation}
+            disabled={locLoading}
+            style={{ fontSize: 20, padding: '0 6px', color: locLoading ? 'var(--faint)' : 'var(--accent)', lineHeight: 1 }}
+            title="Засечи текуща локация"
+          >📍</button>
+        </div>
+        {locError && <span style={{ fontSize: 11, color: 'var(--red, #ec5b53)' }}>{locError}</span>}
       </Field>
       <Toggle checked={missedFill} onChange={setMissedFill} label="Пропуснах предходно зареждане" />
     </Modal>

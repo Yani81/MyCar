@@ -344,6 +344,7 @@ export function HistoryPage() {
           {r.station && <DetailRow label="Бензиностанция" value={r.station} />}
           {r.driver && <DetailRow label="Шофьор" value={r.driver} />}
           {r.notes && <DetailRow label="Бележка" value={r.notes} />}
+          {r.location && <DetailRow label="Локация" value={r.location} />}
           {it.receiptImage && (
             <div className={styles.detailRow}>
               <span className={styles.detailLabel}>Касова бележка</span>
