@@ -5,6 +5,7 @@ import { useStore } from '../../store/useStore'
 import { todayISO } from '../../lib/format'
 import { FUEL_LABELS, type Refuel, type FuelType } from '../../types'
 import { FormFooter } from '../../components/ui/FormFooter'
+import { ImageLightbox } from '../../components/ui/ImageLightbox'
 import styles from './RefuelForm.module.css'
 
 function compressImage(file: File): Promise<string> {
@@ -46,6 +47,7 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
   const [driver, setDriver] = useState(edit?.driver ?? '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
   const [receiptImage, setReceiptImage] = useState(edit?.receiptImage ?? '')
+  const [showLightbox, setShowLightbox] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const onLiters = (val: string) => {
@@ -120,7 +122,7 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
           <input className={inputClass} inputMode="decimal" value={price} onChange={(e) => onPrice(e.target.value)} placeholder="0.000" />
         </Field>
       </Row>
-      <Field label="Обща стойност (лв.)" hint="смята се автоматично, но може да се коригира">
+      <Field label="Обща стойност (€)" hint="смята се автоматично, но може да се коригира">
         <input className={inputClass} inputMode="decimal" value={total} onChange={(e) => onTotal(e.target.value)} placeholder="0.00" />
       </Field>
       <Toggle checked={fullTank} onChange={setFullTank} label="Заредих догоре (пълен резервоар)" />
@@ -155,9 +157,10 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
               src={receiptImage}
               className={styles.receiptThumb}
               alt="Касова бележка"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setShowLightbox(true)}
             />
             <button type="button" className={styles.receiptRemove} onClick={() => setReceiptImage('')}>✕</button>
+            <button type="button" className={styles.receiptChange} onClick={() => fileInputRef.current?.click()}>Смени</button>
           </div>
         ) : (
           <button type="button" className={styles.receiptBtn} onClick={() => fileInputRef.current?.click()}>
@@ -165,6 +168,7 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
           </button>
         )}
       </div>
+      {showLightbox && <ImageLightbox src={receiptImage} onClose={() => setShowLightbox(false)} />}
     </Modal>
   )
 }

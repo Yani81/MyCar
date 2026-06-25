@@ -141,7 +141,7 @@ function Fuel({ data, stats, monthly }: { data: AllData; stats: Stats; monthly: 
                 <CartesianGrid vertical={false} stroke="var(--border)" />
                 <XAxis dataKey="x" tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} domain={['dataMin - 0.1', 'dataMax + 0.1']} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => [`${val.toFixed(3)} лв./л`, 'Цена']} labelStyle={{ color: 'var(--muted)' }} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => [`${val.toFixed(3)} €/л`, 'Цена']} labelStyle={{ color: 'var(--muted)' }} />
                 <Line type="monotone" dataKey="value" stroke="var(--accent)" strokeWidth={2.5} dot={{ r: 2.5, fill: 'var(--accent)' }} />
               </LineChart>
             </ResponsiveContainer>

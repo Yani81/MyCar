@@ -1,7 +1,7 @@
 const BG = 'bg-BG'
 
 export const money = (n: number): string =>
-  new Intl.NumberFormat(BG, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' лв.'
+  new Intl.NumberFormat(BG, { style: 'currency', currency: 'EUR' }).format(n)
 
 export const num = (n: number, digits = 1): string =>
   new Intl.NumberFormat(BG, { minimumFractionDigits: 0, maximumFractionDigits: digits }).format(n)

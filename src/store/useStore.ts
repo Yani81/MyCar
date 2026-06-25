@@ -11,6 +11,7 @@ import type {
   FuelType,
 } from '../types'
 import { uid } from '../lib/id'
+import type { StoreData } from '../lib/sync'
 
 export type Theme = 'auto' | 'light' | 'dark'
 
@@ -25,6 +26,7 @@ interface State {
   activeVehicleId: string | null
   theme: Theme
 
+  loadCloudData: (data: StoreData) => void
   setTheme: (t: Theme) => void
   setActiveVehicle: (id: string) => void
 
@@ -96,6 +98,7 @@ export const useStore = create<State>()(
         activeVehicleId: v0.id,
         theme: 'light',
 
+        loadCloudData: (data) => set({ ...data }),
         setTheme: (theme) => set({ theme }),
         setActiveVehicle: (id) => set({ activeVehicleId: id }),
 
@@ -172,3 +175,27 @@ export const useStore = create<State>()(
 
 export const useActiveVehicle = () =>
   useStore((s) => s.vehicles.find((v) => v.id === s.activeVehicleId) ?? s.vehicles[0] ?? null)
+
+let syncTimer: ReturnType<typeof setTimeout> | null = null
+useStore.subscribe(() => {
+  import('./useAuth').then(({ useAuth }) => {
+    if (!useAuth.getState().user) return
+    if (syncTimer) clearTimeout(syncTimer)
+    syncTimer = setTimeout(() => {
+      import('../lib/sync').then(({ saveToCloud }) => {
+        const s = useStore.getState()
+        saveToCloud({
+          vehicles: s.vehicles,
+          refuels: s.refuels,
+          expenses: s.expenses,
+          incomes: s.incomes,
+          trips: s.trips,
+          readings: s.readings,
+          reminders: s.reminders,
+          activeVehicleId: s.activeVehicleId,
+          theme: s.theme,
+        })
+      })
+    }, 1500)
+  })
+})

@@ -118,7 +118,7 @@ export function ExpenseForm({
         <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. Смяна на накладки" />
       </Field>
       <Row>
-        <Field label="Сума (лв.)">
+        <Field label="Сума (€)">
           <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0.00" />
         </Field>
         <Field label="Дата">

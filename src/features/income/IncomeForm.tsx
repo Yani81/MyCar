@@ -51,7 +51,7 @@ export function IncomeForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
         </select>
       </Field>
       <Row>
-        <Field label="Сума (лв.)">
+        <Field label="Сума (€)">
           <input className={inputClass} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
         </Field>
         <Field label="Дата">

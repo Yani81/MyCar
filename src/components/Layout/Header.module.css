@@ -68,6 +68,10 @@
   border-color: var(--accent);
   background: var(--accent-soft);
 }
+.vrowInfo {
+  flex: 1;
+  min-width: 0;
+}
 .vrowName {
   font-weight: 600;
   font-size: 15px;
@@ -76,12 +80,37 @@
   font-size: 12px;
   color: var(--muted);
 }
+.vrowActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+.edit {
+  color: var(--faint);
+  padding: 6px;
+}
+.edit:active {
+  color: var(--accent);
+}
 .del {
   color: var(--faint);
   padding: 6px;
 }
 .del:active {
   color: var(--red);
+}
+.editTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.editButtons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 .addForm {
   display: flex;
@@ -119,4 +148,29 @@
   font-weight: 600;
   color: var(--muted);
   margin-bottom: 8px;
+}
+.accountBlock {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.accountEmail {
+  font-size: 13px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.signOut {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--red-soft);
 }

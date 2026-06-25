@@ -28,25 +28,31 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
       readings: readings.filter((r) => r.vehicleId === v.id),
     }
     const stats = computeStats(v, data)
+
+    const sortedFuelRefuels = [...data.refuels].sort((a, b) => b.odometer - a.odometer)
+    const lastRefuel = sortedFuelRefuels[0] ?? null
+    const prevRefuelOdo = sortedFuelRefuels[1]?.odometer ?? null
+    const lastKm = lastRefuel && prevRefuelOdo !== null ? lastRefuel.odometer - prevRefuelOdo : null
+
     const nextRem = reminders
       .filter((r) => r.vehicleId === v.id && !r.done)
       .map((r) => ({ r, info: reminderInfo(r, stats.currentOdometer) }))
       .sort((a, b) => ({ overdue: 0, soon: 1, ok: 2 }[a.info.status] - { overdue: 0, soon: 1, ok: 2 }[b.info.status]))[0]
 
     const recent = [
-      ...data.refuels.map((r) => ({ id: r.id, Icon: IconFuel, cls: 'fuel', date: r.date, label: `${num(r.liters, 2)} л зареждане`, amount: r.total, pos: false, open: { type: 'refuel', entry: r } as FormOpen })),
-      ...data.expenses.map((e) => ({ id: e.id, Icon: IconWrench, cls: e.kind === 'service' ? 'service' : 'exp', date: e.date, label: e.title || e.category, amount: e.cost, pos: false, open: { type: e.kind === 'service' ? 'service' : 'expense', entry: e } as FormOpen })),
-      ...data.incomes.map((i) => ({ id: i.id, Icon: IconIncome, cls: 'income', date: i.date, label: i.category, amount: i.amount, pos: true, open: { type: 'income', entry: i } as FormOpen })),
-      ...data.trips.map((t) => ({ id: t.id, Icon: IconRoute, cls: 'trip', date: t.date, label: `${t.origin} → ${t.destination}`, amount: t.total, pos: false, open: { type: 'trip', entry: t } as FormOpen })),
+      ...data.refuels.map((r) => ({ id: r.id, Icon: IconFuel, cls: 'fuel', date: r.date, label: `${num(r.liters, 2)} л · ${num(r.pricePerLiter, 3)} €/л`, sub: `${FUEL_LABELS[r.fuelType]}${r.station ? ` · ${r.station}` : ''}`, amount: r.total, pos: false, open: { type: 'refuel', entry: r } as FormOpen })),
+      ...data.expenses.map((e) => ({ id: e.id, Icon: IconWrench, cls: e.kind === 'service' ? 'service' : 'exp', date: e.date, label: e.title || e.category, sub: e.place || '', amount: e.cost, pos: false, open: { type: e.kind === 'service' ? 'service' : 'expense', entry: e } as FormOpen })),
+      ...data.incomes.map((i) => ({ id: i.id, Icon: IconIncome, cls: 'income', date: i.date, label: i.category, sub: i.notes || '', amount: i.amount, pos: true, open: { type: 'income', entry: i } as FormOpen })),
+      ...data.trips.map((t) => ({ id: t.id, Icon: IconRoute, cls: 'trip', date: t.date, label: `${t.origin} → ${t.destination}`, sub: km(t.endOdometer - t.startOdometer), amount: t.total, pos: false, open: { type: 'trip', entry: t } as FormOpen })),
     ]
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 6)
 
-    return { stats, nextRem, recent }
+    return { stats, nextRem, recent, lastRefuel, lastKm }
   }, [v, refuels, expenses, incomes, trips, readings, reminders])
 
   if (!v || !d) return null
-  const { stats, nextRem, recent } = d
+  const { stats, nextRem, recent, lastRefuel, lastKm } = d
 
   return (
     <div className={styles.wrap}>
@@ -70,6 +76,7 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
         <Stat label="За гориво" value={money(stats.totalFuelCost)} accent />
         <Stat label="Приход" value={money(stats.totalIncome)} />
       </div>
+
 
       <div className={styles.total}>
         <span>Общо разходи</span>
@@ -96,7 +103,9 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
               <span className={`${styles.actIcon} ${styles[item.cls]}`}><item.Icon width={18} height={18} /></span>
               <div className={styles.actInfo}>
                 <span className={styles.actLabel}>{item.label}</span>
-                <span className={styles.actDate}>{dateShort(item.date)}</span>
+                <span className={styles.actDate}>
+                  {item.sub ? `${item.sub} · ${dateShort(item.date)}` : dateShort(item.date)}
+                </span>
               </div>
               <span className="mono" style={item.pos ? { color: 'var(--green)' } : undefined}>{item.pos ? '+' : ''}{money(item.amount)}</span>
             </button>
