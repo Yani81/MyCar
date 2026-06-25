@@ -54,7 +54,7 @@ export function OdometerForm({ vehicleId, edit, onClose }: { vehicleId: string; 
         <Field label="Дата">
           <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
-        <Field label="Километраж" hint={`последно: ${km(last)}`}>
+        <Field label="Километраж" hint={last > 0 ? `Последно: ${km(last)}` : undefined}>
           <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
         </Field>
       </Row>
