@@ -36,6 +36,9 @@
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+.row > * {
+  min-width: 0;
+}
 .toggle {
   display: flex;
   align-items: center;
