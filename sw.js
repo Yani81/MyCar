@@ -1,5 +1,5 @@
 // Прост service worker: network-first за документи, cache-first за статиката.
-const CACHE = 'mycar-v3'
+const CACHE = 'mycar-v4'
 
 self.addEventListener('install', (e) => {
   self.skipWaiting()
