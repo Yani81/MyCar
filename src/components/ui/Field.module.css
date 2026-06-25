@@ -15,6 +15,7 @@
 }
 .input {
   width: 100%;
+  min-width: 0;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -23,6 +24,7 @@
   font-size: 16px;
   outline: none;
   transition: border-color 0.15s;
+  overflow: hidden;
 }
 .input:focus {
   border-color: var(--accent);
