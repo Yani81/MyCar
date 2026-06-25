@@ -21,6 +21,7 @@ const FILTERS: { value: HistoryFilter | null; label: string; color: string }[] =
 interface Item {
   id: string
   date: string
+  odo: number
   color: string
   amount: number | null
   positive: boolean
@@ -273,7 +274,7 @@ export function HistoryPage() {
     }
 
     vehicleRefuels.forEach(r => items.push({
-      id: r.id, date: r.date, color: '#f5821f',
+      id: r.id, date: r.date, odo: r.odometer, color: '#f5821f',
       title: multi ? FUEL_LABELS[r.fuelType] : 'Зареждане',
       amount: r.total, positive: false,
       receiptImage: r.receiptImage,
@@ -284,7 +285,7 @@ export function HistoryPage() {
     }))
 
     expenses.filter(e => e.vehicleId === v.id).forEach(e => items.push({
-      id: e.id, date: e.date, color: e.kind === 'service' ? '#7a5c4a' : '#ec5b53',
+      id: e.id, date: e.date, odo: e.odometer ?? 0, color: e.kind === 'service' ? '#7a5c4a' : '#ec5b53',
       title: e.title || e.category,
       amount: e.cost, positive: false,
       open: { type: e.kind === 'service' ? 'service' : 'expense', entry: e },
@@ -292,7 +293,7 @@ export function HistoryPage() {
     }))
 
     incomes.filter(i => i.vehicleId === v.id).forEach(i => items.push({
-      id: i.id, date: i.date, color: '#3f9c35',
+      id: i.id, date: i.date, odo: i.odometer ?? 0, color: '#3f9c35',
       title: i.category,
       amount: i.amount, positive: true,
       open: { type: 'income', entry: i },
@@ -300,7 +301,7 @@ export function HistoryPage() {
     }))
 
     trips.filter(t => t.vehicleId === v.id).forEach(t => items.push({
-      id: t.id, date: t.date, color: '#5f7079',
+      id: t.id, date: t.date, odo: t.endOdometer, color: '#5f7079',
       title: `${t.origin} → ${t.destination}`,
       amount: t.total > 0 ? t.total : null, positive: false,
       open: { type: 'trip', entry: t },
@@ -308,14 +309,14 @@ export function HistoryPage() {
     }))
 
     readings.filter(r => r.vehicleId === v.id).forEach(r => items.push({
-      id: r.id, date: r.date, color: '#c2185b',
+      id: r.id, date: r.date, odo: r.odometer, color: '#c2185b',
       title: 'Показание',
       amount: null, positive: false,
       open: { type: 'odometer', entry: r },
       entry: r,
     }))
 
-    items.sort((a, b) => b.date.localeCompare(a.date))
+    items.sort((a, b) => b.date.localeCompare(a.date) || b.odo - a.odo)
     const visible = historyFilter ? items.filter(it => it.open.type === historyFilter) : items
     const map = new Map<string, Item[]>()
     visible.forEach(it => {
