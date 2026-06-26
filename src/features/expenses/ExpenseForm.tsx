@@ -189,33 +189,40 @@ export function ExpenseForm({
 
       {isInsurance && (
         <>
-          <Field label="Вид застраховка">
-            <select className={selectClass} value={insuranceType} onChange={(e) => setInsuranceType(e.target.value)}>
-              {INSURANCE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </Field>
-          <Field label="Застрахователна компания">
-            {insurerPick !== '__new__' ? (
-              <select className={selectClass} value={insurerPick} onChange={(e) => setInsurerPick(e.target.value)}>
-                <option value=""></option>
-                {DEFAULT_INSURERS.map((c) => <option key={c} value={c}>{c}</option>)}
-                <option value="__new__">+ Добави друга...</option>
+          <Row>
+            <Field label="Вид застраховка">
+              <select className={selectClass} value={insuranceType} onChange={(e) => setInsuranceType(e.target.value)}>
+                {INSURANCE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
-            ) : (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input className={inputClass} style={{ flex: 1 }} value={insurerText}
-                  onChange={(e) => setInsurerText(e.target.value)} placeholder="напр. Дженерали" autoFocus />
-                <button type="button" onClick={() => { setInsurerPick(''); setInsurerText('') }}
-                  style={{ fontSize: 18, color: 'var(--muted)', padding: '0 4px' }}>✕</button>
-              </div>
-            )}
-          </Field>
-          <Field label="Брой вноски">
-            <select className={selectClass} value={insuranceInstallments}
-              onChange={(e) => handleInstallmentsChange(Number(e.target.value))}>
-              {INSTALLMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </Field>
+            </Field>
+            <Field label="Застрахователна компания">
+              {insurerPick !== '__new__' ? (
+                <select className={selectClass} value={insurerPick} onChange={(e) => setInsurerPick(e.target.value)}>
+                  <option value=""></option>
+                  {DEFAULT_INSURERS.map((c) => <option key={c} value={c}>{c}</option>)}
+                  <option value="__new__">+ Добави друга...</option>
+                </select>
+              ) : (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input className={inputClass} style={{ flex: 1 }} value={insurerText}
+                    onChange={(e) => setInsurerText(e.target.value)} placeholder="напр. Дженерали" autoFocus />
+                  <button type="button" onClick={() => { setInsurerPick(''); setInsurerText('') }}
+                    style={{ fontSize: 18, color: 'var(--muted)', padding: '0 4px' }}>✕</button>
+                </div>
+              )}
+            </Field>
+          </Row>
+          <Row>
+            <Field label="Брой вноски">
+              <select className={selectClass} value={insuranceInstallments}
+                onChange={(e) => handleInstallmentsChange(Number(e.target.value))}>
+                {INSTALLMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Километраж (по избор)">
+              <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
+            </Field>
+          </Row>
           {Array.from({ length: insuranceInstallments }, (_, i) => (
             <Field key={i} label={insuranceInstallments === 1 ? 'Сума (€)' : `Вноска ${i + 1} (€)`}>
               <input
@@ -231,9 +238,6 @@ export function ExpenseForm({
               />
             </Field>
           ))}
-          <Field label="Километраж (по избор)">
-            <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
-          </Field>
         </>
       )}
 
@@ -248,9 +252,11 @@ export function ExpenseForm({
         </Row>
       )}
 
-      <Field label="Описание (по избор)">
-        <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. Гражданска отговорност" />
-      </Field>
+      {!isInsurance && (
+        <Field label="Описание (по избор)">
+          <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="" />
+        </Field>
+      )}
       <Row>
         <Field label="Дата">
           <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
