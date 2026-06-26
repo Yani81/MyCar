@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useRef, type ReactNode } from 'react'
 import styles from './RemindersPage.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { computeStats, reminderInfo, type ReminderStatus, type AllData } from '../../lib/calculations'
@@ -11,6 +11,45 @@ const STATUS_LABEL: Record<ReminderStatus, string> = {
   ok: 'Активно',
 }
 
+const SWIPE_THRESHOLD = -72
+
+function SwipeRow({ children, onDelete }: { children: ReactNode; onDelete: () => void }) {
+  const [dx, setDx] = useState(0)
+  const [snapping, setSnapping] = useState(false)
+  const startX = useRef(0)
+  const active = useRef(false)
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-sm)' }}>
+      <div className={styles.deleteHint}>Изтрий</div>
+      <div
+        style={{ transform: `translateX(${dx}px)`, transition: snapping ? 'transform 0.22s ease' : 'none' }}
+        onTouchStart={(e) => {
+          startX.current = e.touches[0].clientX
+          active.current = true
+          setSnapping(false)
+        }}
+        onTouchMove={(e) => {
+          if (!active.current) return
+          const d = e.touches[0].clientX - startX.current
+          if (d < 0) setDx(d)
+        }}
+        onTouchEnd={() => {
+          active.current = false
+          if (dx < SWIPE_THRESHOLD) {
+            onDelete()
+          } else {
+            setSnapping(true)
+            setDx(0)
+          }
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export function RemindersPage() {
   const v = useActiveVehicle()
   const all = useStore((s) => s.reminders)
@@ -20,6 +59,7 @@ export function RemindersPage() {
   const trips = useStore((s) => s.trips)
   const readings = useStore((s) => s.readings)
   const updateReminder = useStore((s) => s.updateReminder)
+  const removeReminder = useStore((s) => s.removeReminder)
   const openForm = useUI((s) => s.openForm)
 
   const currentOdometer = useMemo(() => {
@@ -70,14 +110,16 @@ export function RemindersPage() {
       ) : (
         <div className={styles.list}>
           {active.map(({ r, info }) => (
-            <div key={r.id} className={`${styles.item} ${styles[info.status]}`}>
-              <button className={styles.body} onClick={() => openForm({ type: 'reminder', entry: r })}>
-                <span className={styles.badge}>{STATUS_LABEL[info.status]}</span>
-                <span className={styles.title}>{r.title}</span>
-                <span className={styles.sub}>{info.label}</span>
-              </button>
-              <button className={styles.check} onClick={() => complete(r)} aria-label="Готово">✓</button>
-            </div>
+            <SwipeRow key={r.id} onDelete={() => removeReminder(r.id)}>
+              <div className={`${styles.item} ${styles[info.status]}`}>
+                <button className={styles.body} onClick={() => openForm({ type: 'reminder', entry: r })}>
+                  <span className={styles.badge}>{STATUS_LABEL[info.status]}</span>
+                  <span className={styles.title}>{r.title}</span>
+                  <span className={styles.sub}>{info.label}</span>
+                </button>
+                <button className={styles.check} onClick={() => complete(r)} aria-label="Готово">✓</button>
+              </div>
+            </SwipeRow>
           ))}
         </div>
       )}
@@ -87,10 +129,12 @@ export function RemindersPage() {
           <div className="section-title">Изпълнени</div>
           <div className={styles.list}>
             {done.map(({ r }) => (
-              <div key={r.id} className={styles.doneItem}>
-                <span className={styles.title}>{r.title}</span>
-                <button className={styles.undo} onClick={() => updateReminder(r.id, { done: false })}>върни</button>
-              </div>
+              <SwipeRow key={r.id} onDelete={() => removeReminder(r.id)}>
+                <div className={styles.doneItem}>
+                  <span className={styles.title}>{r.title}</span>
+                  <button className={styles.undo} onClick={() => updateReminder(r.id, { done: false })}>върни</button>
+                </div>
+              </SwipeRow>
             ))}
           </div>
         </>

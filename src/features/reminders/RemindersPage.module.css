@@ -79,6 +79,19 @@
   color: var(--muted);
   font-weight: 500;
 }
+.deleteHint {
+  position: absolute;
+  inset: 0;
+  background: var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 20px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
 .undo {
   font-size: 12px;
   font-weight: 600;
