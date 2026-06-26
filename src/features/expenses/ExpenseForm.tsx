@@ -1,10 +1,32 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, selectClass, textareaClass, Toggle, Segmented, CheckGroup } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore } from '../../store/useStore'
 import { todayISO, todayTimeISO, toNumStr } from '../../lib/format'
 import { EXPENSE_CATEGORIES, type Expense, type ExpenseKind, type ReminderBasis } from '../../types'
+import { ImageLightbox } from '../../components/ui/ImageLightbox'
+import styles from './ExpenseForm.module.css'
+
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 1000
+        const ratio = Math.min(MAX / img.width, MAX / img.height, 1)
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width * ratio
+        canvas.height = img.height * ratio
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', 0.75))
+      }
+      img.src = e.target!.result as string
+    }
+    reader.readAsDataURL(file)
+  })
+}
 
 export function ExpenseForm({
   vehicleId,
@@ -35,6 +57,9 @@ export function ExpenseForm({
   const [odometer, setOdometer] = useState(edit?.odometer ? String(edit.odometer) : '')
   const [place, setPlace] = useState(edit?.place ?? '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
+  const [receiptImage, setReceiptImage] = useState(edit?.receiptImage ?? '')
+  const [showLightbox, setShowLightbox] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Oil change specific
   const [oilType, setOilType] = useState(edit?.oilType ?? '')
@@ -69,6 +94,7 @@ export function ExpenseForm({
       odometer: Number(odometer) || undefined,
       place: place.trim() || undefined,
       notes: notes.trim() || undefined,
+      receiptImage: receiptImage || undefined,
       ...(isOil && {
         oilType: oilType.trim() || undefined,
         oilFilterChanged: oilFilter || undefined,
@@ -114,7 +140,7 @@ export function ExpenseForm({
         </select>
       </Field>
       <Field label="Описание (по избор)">
-        <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. Смяна на накладки" />
+        <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. Гражданска отговорност" />
       </Field>
       <Row>
         <Field label="Дата">
@@ -198,6 +224,37 @@ export function ExpenseForm({
       <Field label="Бележка (по избор)">
         <textarea className={textareaClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          if (file) setReceiptImage(await compressImage(file))
+          e.target.value = ''
+        }}
+      />
+      <div className={styles.receiptSection}>
+        {receiptImage ? (
+          <div className={styles.receiptPreview}>
+            <img
+              src={receiptImage}
+              className={styles.receiptThumb}
+              alt="Касова бележка"
+              onClick={() => setShowLightbox(true)}
+            />
+            <button type="button" className={styles.receiptRemove} onClick={() => setReceiptImage('')}>✕</button>
+            <button type="button" className={styles.receiptChange} onClick={() => fileInputRef.current?.click()}>Смени</button>
+          </div>
+        ) : (
+          <button type="button" className={styles.receiptBtn} onClick={() => fileInputRef.current?.click()}>
+            Прикачи бележка
+          </button>
+        )}
+      </div>
+      {showLightbox && <ImageLightbox src={receiptImage} onClose={() => setShowLightbox(false)} />}
     </Modal>
   )
 }

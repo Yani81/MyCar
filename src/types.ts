@@ -43,6 +43,7 @@ export interface Expense {
   cost: number
   place?: string
   notes?: string
+  receiptImage?: string
   oilType?: string
   oilFilterChanged?: boolean
   fuelFilterChanged?: boolean

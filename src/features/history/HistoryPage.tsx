@@ -288,6 +288,7 @@ export function HistoryPage() {
       id: e.id, date: e.date, odo: e.odometer ?? 0, color: e.kind === 'service' ? '#7a5c4a' : '#ec5b53',
       title: e.title || e.category,
       amount: e.cost, positive: false,
+      receiptImage: e.receiptImage,
       open: { type: e.kind === 'service' ? 'service' : 'expense', entry: e },
       entry: e,
     }))
@@ -368,6 +369,14 @@ export function HistoryPage() {
           {e.odometer != null && e.odometer > 0 && <DetailRow label="Километраж" value={km(e.odometer)} />}
           {e.place && <DetailRow label="Място" value={e.place} />}
           {e.notes && <DetailRow label="Бележка" value={e.notes} />}
+          {it.receiptImage && (
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Касова бележка</span>
+              <button className={styles.receiptLink} onClick={() => setLightboxImg(it.receiptImage!)}>
+                Виж снимка
+              </button>
+            </div>
+          )}
           <button className={styles.editBtn} onClick={() => openForm(it.open)}>Редактирай</button>
         </div>
       )
