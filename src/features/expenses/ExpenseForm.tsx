@@ -69,6 +69,8 @@ export function ExpenseForm({
   const updateExpense = useStore((s) => s.updateExpense)
   const removeExpense = useStore((s) => s.removeExpense)
   const addReminder = useStore((s) => s.addReminder)
+  const removeReminder = useStore((s) => s.removeReminder)
+  const reminders = useStore((s) => s.reminders)
 
   const kind: ExpenseKind = edit?.kind ?? mode
   const cats = EXPENSE_CATEGORIES.filter((c) => c.kind === kind)
@@ -156,7 +158,9 @@ export function ExpenseForm({
       kind: cat.kind,
       category: cat.label,
       title: title.trim() || undefined,
-      cost: isInsurance ? installmentTotal : Number(cost),
+      cost: isInsurance
+        ? installments.reduce((s, r) => s + (r.paid ? parseFloat(toNumStr(r.amount)) || 0 : 0), 0)
+        : Number(cost),
       odometer: Number(odometer) || undefined,
       place: place.trim() || undefined,
       notes: notes.trim() || undefined,
@@ -182,7 +186,7 @@ export function ExpenseForm({
     else addExpense(payload)
 
     if (isInsurance && !edit) {
-      const withDates = installments.filter((r) => !!r.dueDate)
+      const withDates = installments.filter((r) => !!r.dueDate && !r.paid)
       withDates.forEach((inst, i) => {
         const label = withDates.length === 1 ? 'Вноска' : `Вноска ${i + 1}`
         const company = insuranceCompany.trim()
@@ -193,6 +197,19 @@ export function ExpenseForm({
           dueDate: inst.dueDate,
           done: false,
         })
+      })
+    }
+
+    if (isInsurance && edit) {
+      const prevInst = edit.installments ?? []
+      installments.forEach((inst, i) => {
+        const wasPaid = prevInst[i]?.paid ?? false
+        if (inst.paid && !wasPaid && inst.dueDate) {
+          const match = reminders.find(
+            (r) => r.vehicleId === vehicleId && r.dueDate === inst.dueDate && !r.done
+          )
+          if (match) removeReminder(match.id)
+        }
       })
     }
 
