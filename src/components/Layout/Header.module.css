@@ -2,7 +2,7 @@
   background: var(--brand);
   margin: calc(-1 * (env(safe-area-inset-top) + 8px)) -16px 14px;
   padding: calc(env(safe-area-inset-top) + 12px) 12px 12px;
-  border-radius: 0 0 18px 18px;
+  border-radius: 18px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 .selector {
