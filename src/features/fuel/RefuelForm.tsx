@@ -223,7 +223,7 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
       <Field label="Бензиностанция">
         {stationPick !== '__new__' ? (
           <select className={selectClass} value={stationPick} onChange={(e) => setStationPick(e.target.value)}>
-            <option value="">— без станция —</option>
+            <option value=""></option>
             {stationOptions.map((s) => <option key={s} value={s}>{s}</option>)}
             <option value="__new__">+ Добави нова...</option>
           </select>
