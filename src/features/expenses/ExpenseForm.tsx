@@ -181,6 +181,21 @@ export function ExpenseForm({
     if (edit) updateExpense(edit.id, payload)
     else addExpense(payload)
 
+    if (isInsurance && !edit) {
+      const withDates = installments.filter((r) => !!r.dueDate)
+      withDates.forEach((inst, i) => {
+        const label = withDates.length === 1 ? 'Вноска' : `Вноска ${i + 1}`
+        const company = insuranceCompany.trim()
+        addReminder({
+          vehicleId,
+          title: `${label} по ${insuranceType}${company ? ` – ${company}` : ''}`,
+          basis: 'date',
+          dueDate: inst.dueDate,
+          done: false,
+        })
+      })
+    }
+
     if (isOil && !edit && enableReminder) {
       addReminder({
         vehicleId,

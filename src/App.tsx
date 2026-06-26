@@ -26,6 +26,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('dashboard')
   const theme = useStore((s) => s.theme)
   const loadCloudData = useStore((s) => s.loadCloudData)
+  const reminders = useStore((s) => s.reminders)
   const { user, loading } = useAuth()
   const prevUserId = useRef<string | null>(null)
 
@@ -61,6 +62,43 @@ export default function App() {
         })
       }
     })
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!user) return
+    if (sessionStorage.getItem('notif-checked')) return
+    sessionStorage.setItem('notif-checked', '1')
+
+    const todayMs = new Date().setHours(0, 0, 0, 0)
+    const upcoming = reminders.filter((r) => {
+      if (r.done || !r.dueDate) return false
+      const due = new Date(r.dueDate + 'T00:00:00').getTime()
+      const days = Math.round((due - todayMs) / 86400000)
+      return days >= 0 && days <= 7
+    })
+    if (!upcoming.length || !('Notification' in window)) return
+
+    const show = () => {
+      upcoming.forEach((r) => {
+        const due = new Date(r.dueDate! + 'T00:00:00').getTime()
+        const days = Math.round((due - todayMs) / 86400000)
+        const body = days === 0 ? 'Днес!' : `След ${days} ${days === 1 ? 'ден' : 'дни'}`
+        const opts = { body, icon: '/MyCar/icon-192.png' }
+        if (navigator.serviceWorker?.controller) {
+          navigator.serviceWorker.ready
+            .then((sw) => sw.showNotification(`MyCar: ${r.title}`, opts))
+            .catch(() => new Notification(`MyCar: ${r.title}`, opts))
+        } else {
+          new Notification(`MyCar: ${r.title}`, opts)
+        }
+      })
+    }
+
+    if (Notification.permission === 'granted') {
+      show()
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then((p) => { if (p === 'granted') show() })
+    }
   }, [user?.id])
 
   if (loading) {
