@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Modal } from '../../components/ui/Modal'
-import { Field, inputClass } from '../../components/ui/Field'
+import { Field, Row, inputClass } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { computeStats } from '../../lib/calculations'
-import { todayISO, toDateTimeLocal, km } from '../../lib/format'
+import { todayISO, todayTimeISO, km } from '../../lib/format'
 import type { OdometerReading } from '../../types'
 
 export function OdometerForm({ vehicleId, edit, onClose }: { vehicleId: string; edit: OdometerReading | null; onClose: () => void }) {
@@ -28,14 +28,15 @@ export function OdometerForm({ vehicleId, edit, onClose }: { vehicleId: string; 
       }).currentOdometer
     : 0
 
-  const [date, setDate] = useState(toDateTimeLocal(edit?.date ?? todayISO()))
+  const [date, setDate] = useState((edit?.date ?? todayISO()).slice(0, 10))
+  const [time, setTime] = useState(edit?.date && edit.date.length > 10 ? edit.date.slice(11, 16) : todayTimeISO())
   const [odometer, setOdometer] = useState(edit ? String(edit.odometer) : '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
 
   const valid = Number(odometer) > 0
   const submit = () => {
     if (!valid) return
-    const payload = { vehicleId, date, odometer: Number(odometer), notes: notes.trim() || undefined }
+    const payload = { vehicleId, date: date + (time ? 'T' + time : ''), odometer: Number(odometer), notes: notes.trim() || undefined }
     if (edit) updateReading(edit.id, payload)
     else addReading(payload)
     onClose()
@@ -49,9 +50,14 @@ export function OdometerForm({ vehicleId, edit, onClose }: { vehicleId: string; 
       onClose={onClose}
       footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeReading(edit.id); onClose() } : undefined} deleteMsg="Изтриване на показанието?" color="#c2185b" />}
     >
-      <Field label="Дата и час">
-        <input className={inputClass} type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
-      </Field>
+      <Row>
+        <Field label="Дата">
+          <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+        <Field label="Час">
+          <input className={inputClass} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+        </Field>
+      </Row>
       <Field label="Километраж" hint={last > 0 ? `Последно: ${km(last)}` : undefined}>
         <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
       </Field>

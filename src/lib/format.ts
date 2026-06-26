@@ -31,6 +31,9 @@ export const todayISO = (): string => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
+export const todayDateISO = (): string => todayISO().slice(0, 10)
+export const todayTimeISO = (): string => todayISO().slice(11, 16)
+
 export const toDateTimeLocal = (iso: string): string =>
   iso.length === 10 ? iso + 'T00:00' : iso.slice(0, 16)
 

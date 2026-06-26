@@ -3,7 +3,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, selectClass, textareaClass, Toggle, Segmented, CheckGroup } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore } from '../../store/useStore'
-import { todayISO, toDateTimeLocal, toNumStr } from '../../lib/format'
+import { todayISO, todayTimeISO, toNumStr } from '../../lib/format'
 import { EXPENSE_CATEGORIES, type Expense, type ExpenseKind, type ReminderBasis } from '../../types'
 
 export function ExpenseForm({
@@ -25,7 +25,8 @@ export function ExpenseForm({
   const kind: ExpenseKind = edit?.kind ?? mode
   const cats = EXPENSE_CATEGORIES.filter((c) => c.kind === kind)
 
-  const [date, setDate] = useState(toDateTimeLocal(edit?.date ?? todayISO()))
+  const [date, setDate] = useState((edit?.date ?? todayISO()).slice(0, 10))
+  const [time, setTime] = useState(edit?.date && edit.date.length > 10 ? edit.date.slice(11, 16) : todayTimeISO())
   const [categoryId, setCategoryId] = useState(
     edit ? EXPENSE_CATEGORIES.find((c) => c.label === edit.category)?.id ?? cats[0].id : cats[0].id
   )
@@ -60,7 +61,7 @@ export function ExpenseForm({
     if (!valid) return
     const payload = {
       vehicleId,
-      date,
+      date: date + (time ? 'T' + time : ''),
       kind: cat.kind,
       category: cat.label,
       title: title.trim() || undefined,
@@ -115,9 +116,14 @@ export function ExpenseForm({
       <Field label="Описание (по избор)">
         <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. Смяна на накладки" />
       </Field>
-      <Field label="Дата и час">
-        <input className={inputClass} type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
-      </Field>
+      <Row>
+        <Field label="Дата">
+          <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+        <Field label="Час">
+          <input className={inputClass} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+        </Field>
+      </Row>
       <Row>
         <Field label="Сума (€)">
           <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(toNumStr(e.target.value))} placeholder="0.00" />
