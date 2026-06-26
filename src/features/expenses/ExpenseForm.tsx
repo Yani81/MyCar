@@ -64,7 +64,7 @@ export function ExpenseForm({
   const [date, setDate] = useState((edit?.date ?? todayISO()).slice(0, 10))
   const [time, setTime] = useState(edit?.date && edit.date.length > 10 ? edit.date.slice(11, 16) : todayTimeISO())
   const [categoryId, setCategoryId] = useState(
-    edit ? EXPENSE_CATEGORIES.find((c) => c.label === edit.category)?.id ?? cats[0].id : cats[0].id
+    edit ? EXPENSE_CATEGORIES.find((c) => c.label === edit.category)?.id ?? '' : ''
   )
   const [title, setTitle] = useState(edit?.title ?? '')
   const [cost, setCost] = useState(edit ? String(edit.cost) : '')
@@ -88,6 +88,19 @@ export function ExpenseForm({
   )
   const insuranceCompany = insurerPick === '__new__' ? insurerText : insurerPick
 
+  const initInstallmentAmounts = (): string[] => {
+    if (!edit?.insuranceInstallments) return ['']
+    const n = edit.insuranceInstallments
+    return Array(n).fill((edit.cost / n).toFixed(2))
+  }
+  const [installmentAmounts, setInstallmentAmounts] = useState<string[]>(initInstallmentAmounts)
+  const installmentTotal = installmentAmounts.reduce((s, v) => s + (parseFloat(toNumStr(v)) || 0), 0)
+
+  const handleInstallmentsChange = (n: number) => {
+    setInsuranceInstallments(n)
+    setInstallmentAmounts((prev) => Array.from({ length: n }, (_, i) => prev[i] ?? ''))
+  }
+
   // Oil change specific
   const [oilType, setOilType] = useState(edit?.oilType ?? '')
   const [oilFilter, setOilFilter] = useState(edit?.oilFilterChanged ?? false)
@@ -102,23 +115,23 @@ export function ExpenseForm({
   const [reminderMonths, setReminderMonths] = useState('')
   const [reminderKm, setReminderKm] = useState('')
 
-  const cat = EXPENSE_CATEGORIES.find((c) => c.id === categoryId) ?? cats[0]
-  const isOil = cat.id === 'oil'
-  const isInsurance = cat.id === 'insurance'
+  const cat = EXPENSE_CATEGORIES.find((c) => c.id === categoryId)
+  const isOil = cat?.id === 'oil'
+  const isInsurance = cat?.id === 'insurance'
   const showReminderDate = reminderBasis === 'date' || reminderBasis === 'both'
   const showReminderOdo = reminderBasis === 'odometer' || reminderBasis === 'both'
 
-  const valid = Number(cost) > 0
+  const valid = !!cat && (isInsurance ? installmentTotal > 0 : Number(cost) > 0)
 
   const submit = () => {
-    if (!valid) return
+    if (!cat || !valid) return
     const payload = {
       vehicleId,
       date: date + (time ? 'T' + time : ''),
       kind: cat.kind,
       category: cat.label,
       title: title.trim() || undefined,
-      cost: Number(cost),
+      cost: isInsurance ? installmentTotal : Number(cost),
       odometer: Number(odometer) || undefined,
       place: place.trim() || undefined,
       notes: notes.trim() || undefined,
@@ -167,33 +180,13 @@ export function ExpenseForm({
     >
       <Field label={kind === 'service' ? 'Вид услуга' : 'Категория'}>
         <select className={selectClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+          <option value="">— изберете —</option>
           {cats.map((c) => (
             <option key={c.id} value={c.id}>{c.label}</option>
           ))}
         </select>
       </Field>
-      <Field label="Описание (по избор)">
-        <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. Гражданска отговорност" />
-      </Field>
-      <Row>
-        <Field label="Дата">
-          <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </Field>
-        <Field label="Час">
-          <input className={inputClass} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-        </Field>
-      </Row>
-      <Row>
-        <Field label="Сума (€)">
-          <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(toNumStr(e.target.value))} placeholder="0.00" />
-        </Field>
-        <Field label="Километраж (по избор)">
-          <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
-        </Field>
-      </Row>
-      <Field label="Място (по избор)">
-        <input className={inputClass} value={place} onChange={(e) => setPlace(e.target.value)} />
-      </Field>
+
       {isInsurance && (
         <>
           <Field label="Вид застраховка">
@@ -219,12 +212,57 @@ export function ExpenseForm({
           </Field>
           <Field label="Брой вноски">
             <select className={selectClass} value={insuranceInstallments}
-              onChange={(e) => setInsuranceInstallments(Number(e.target.value))}>
+              onChange={(e) => handleInstallmentsChange(Number(e.target.value))}>
               {INSTALLMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
+          {Array.from({ length: insuranceInstallments }, (_, i) => (
+            <Field key={i} label={insuranceInstallments === 1 ? 'Сума (€)' : `Вноска ${i + 1} (€)`}>
+              <input
+                className={inputClass}
+                inputMode="decimal"
+                value={installmentAmounts[i] ?? ''}
+                onChange={(e) => {
+                  const next = [...installmentAmounts]
+                  next[i] = toNumStr(e.target.value)
+                  setInstallmentAmounts(next)
+                }}
+                placeholder="0.00"
+              />
+            </Field>
+          ))}
+          <Field label="Километраж (по избор)">
+            <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
+          </Field>
         </>
       )}
+
+      {!isInsurance && (
+        <Row>
+          <Field label="Сума (€)">
+            <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(toNumStr(e.target.value))} placeholder="0.00" />
+          </Field>
+          <Field label="Километраж (по избор)">
+            <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
+          </Field>
+        </Row>
+      )}
+
+      <Field label="Описание (по избор)">
+        <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. Гражданска отговорност" />
+      </Field>
+      <Row>
+        <Field label="Дата">
+          <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+        <Field label="Час">
+          <input className={inputClass} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+        </Field>
+      </Row>
+      <Field label="Място (по избор)">
+        <input className={inputClass} value={place} onChange={(e) => setPlace(e.target.value)} />
+      </Field>
+
       {isOil && (
         <>
           <Field label="Вид масло (по избор)">
