@@ -3,7 +3,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, selectClass, textareaClass, Toggle, Segmented, CheckGroup } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore } from '../../store/useStore'
-import { todayISO, todayTimeISO, toNumStr } from '../../lib/format'
+import { todayISO, todayTimeISO, todayDateISO, toNumStr } from '../../lib/format'
 import { EXPENSE_CATEGORIES, type Expense, type ExpenseKind, type ReminderBasis } from '../../types'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
 import styles from './ExpenseForm.module.css'
@@ -21,6 +21,18 @@ const INSTALLMENT_OPTIONS = [
   { value: 3, label: 'Три вноски' },
   { value: 4, label: 'Четири вноски' },
 ]
+
+const addMonths = (iso: string, months: number): string => {
+  const d = new Date(iso + 'T00:00:00')
+  d.setMonth(d.getMonth() + months)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+const installmentDates = (n: number, baseDate: string): string[] => {
+  const interval = Math.round(12 / n)
+  return Array.from({ length: n }, (_, i) => addMonths(baseDate, i * interval))
+}
 
 function compressImage(file: File): Promise<string> {
   return new Promise((resolve) => {
@@ -95,14 +107,23 @@ export function ExpenseForm({
     }
     const n = typeof edit?.insuranceInstallments === 'number' ? edit.insuranceInstallments : 1
     const amt = edit ? (edit.cost / n).toFixed(2) : ''
-    return Array.from({ length: n }, () => ({ amount: amt, dueDate: '', paid: false }))
+    const dates = edit ? Array(n).fill('') : installmentDates(n, todayDateISO())
+    return Array.from({ length: n }, (_, i) => ({ amount: amt, dueDate: dates[i], paid: false }))
   }
   const [installments, setInstallments] = useState<InstallmentRow[]>(initInstallments)
   const installmentTotal = installments.reduce((s, r) => s + (parseFloat(toNumStr(r.amount)) || 0), 0)
 
   const handleInstallmentsChange = (n: number) => {
     setInsuranceInstallments(n)
-    setInstallments((prev) => Array.from({ length: n }, (_, i) => prev[i] ?? { amount: '', dueDate: '', paid: false }))
+    setInstallments((prev) => {
+      const baseDate = prev[0]?.dueDate || todayDateISO()
+      const dates = installmentDates(n, baseDate)
+      return Array.from({ length: n }, (_, i) =>
+        prev[i]
+          ? { ...prev[i], dueDate: prev[i].dueDate || dates[i] }
+          : { amount: '', dueDate: dates[i], paid: false }
+      )
+    })
   }
 
   // Oil change specific
