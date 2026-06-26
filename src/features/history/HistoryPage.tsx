@@ -370,7 +370,18 @@ export function HistoryPage() {
           {e.place && <DetailRow label="Място" value={e.place} />}
           {e.insuranceType && <DetailRow label="Вид застраховка" value={e.insuranceType} />}
           {e.insuranceCompany && <DetailRow label="Застраховател" value={e.insuranceCompany} />}
-          {e.insuranceInstallments && <DetailRow label="Вноски" value={String(e.insuranceInstallments)} />}
+          {e.installments?.length
+            ? e.installments.map((inst, i) => (
+                <DetailRow
+                  key={i}
+                  label={e.installments!.length === 1 ? 'Сума' : `Вноска ${i + 1}`}
+                  value={`€ ${fmt2(inst.amount)}${inst.dueDate ? ' · ' + dateShort(inst.dueDate) : ''}${inst.paid ? ' · Платено ✓' : ''}`}
+                />
+              ))
+            : e.insuranceInstallments
+              ? <DetailRow label="Вноски" value={String(e.insuranceInstallments)} />
+              : null
+          }
           {e.notes && <DetailRow label="Бележка" value={e.notes} />}
           {it.receiptImage && (
             <div className={styles.detailRow}>

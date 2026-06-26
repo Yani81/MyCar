@@ -88,17 +88,21 @@ export function ExpenseForm({
   )
   const insuranceCompany = insurerPick === '__new__' ? insurerText : insurerPick
 
-  const initInstallmentAmounts = (): string[] => {
-    if (!edit?.insuranceInstallments) return ['']
-    const n = edit.insuranceInstallments
-    return Array(n).fill((edit.cost / n).toFixed(2))
+  interface InstallmentRow { amount: string; dueDate: string; paid: boolean }
+  const initInstallments = (): InstallmentRow[] => {
+    if (edit?.installments?.length) {
+      return edit.installments.map((inst) => ({ amount: String(inst.amount), dueDate: inst.dueDate ?? '', paid: inst.paid }))
+    }
+    const n = typeof edit?.insuranceInstallments === 'number' ? edit.insuranceInstallments : 1
+    const amt = edit ? (edit.cost / n).toFixed(2) : ''
+    return Array.from({ length: n }, () => ({ amount: amt, dueDate: '', paid: false }))
   }
-  const [installmentAmounts, setInstallmentAmounts] = useState<string[]>(initInstallmentAmounts)
-  const installmentTotal = installmentAmounts.reduce((s, v) => s + (parseFloat(toNumStr(v)) || 0), 0)
+  const [installments, setInstallments] = useState<InstallmentRow[]>(initInstallments)
+  const installmentTotal = installments.reduce((s, r) => s + (parseFloat(toNumStr(r.amount)) || 0), 0)
 
   const handleInstallmentsChange = (n: number) => {
     setInsuranceInstallments(n)
-    setInstallmentAmounts((prev) => Array.from({ length: n }, (_, i) => prev[i] ?? ''))
+    setInstallments((prev) => Array.from({ length: n }, (_, i) => prev[i] ?? { amount: '', dueDate: '', paid: false }))
   }
 
   // Oil change specific
@@ -139,7 +143,12 @@ export function ExpenseForm({
       ...(isInsurance && {
         insuranceType,
         insuranceCompany: insuranceCompany.trim() || undefined,
-        insuranceInstallments,
+        insuranceInstallments: installments.length,
+        installments: installments.map((r) => ({
+          amount: parseFloat(toNumStr(r.amount)) || 0,
+          dueDate: r.dueDate || undefined,
+          paid: r.paid,
+        })),
       }),
       ...(isOil && {
         oilType: oilType.trim() || undefined,
@@ -223,28 +232,35 @@ export function ExpenseForm({
               <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
             </Field>
           </Row>
-          {Array.from({ length: Math.ceil(insuranceInstallments / 2) }, (_, rowIdx) => {
-            const i1 = rowIdx * 2
-            const i2 = i1 + 1
-            const mkField = (i: number) => (
-              <Field key={i} label={insuranceInstallments === 1 ? 'Сума (€)' : `Вноска ${i + 1} (€)`}>
+          {installments.map((inst, i) => (
+            <Row key={i} cols="1fr 1fr auto">
+              <Field label={installments.length === 1 ? 'Сума (€)' : `Вноска ${i + 1} (€)`}>
                 <input
                   className={inputClass}
                   inputMode="decimal"
-                  value={installmentAmounts[i] ?? ''}
-                  onChange={(e) => {
-                    const next = [...installmentAmounts]
-                    next[i] = toNumStr(e.target.value)
-                    setInstallmentAmounts(next)
-                  }}
+                  value={inst.amount}
+                  onChange={(e) => { const next = [...installments]; next[i] = { ...next[i], amount: toNumStr(e.target.value) }; setInstallments(next) }}
                   placeholder="0.00"
                 />
               </Field>
-            )
-            return i2 < insuranceInstallments
-              ? <Row key={rowIdx}>{mkField(i1)}{mkField(i2)}</Row>
-              : mkField(i1)
-          })}
+              <Field label="Изтича на">
+                <input
+                  className={inputClass}
+                  type="date"
+                  value={inst.dueDate}
+                  onChange={(e) => { const next = [...installments]; next[i] = { ...next[i], dueDate: e.target.value }; setInstallments(next) }}
+                />
+              </Field>
+              <div className={styles.paidCell}>
+                <span className={styles.paidLabel}>Платено</span>
+                <Toggle
+                  checked={inst.paid}
+                  onChange={(v) => { const next = [...installments]; next[i] = { ...next[i], paid: v }; setInstallments(next) }}
+                  label=""
+                />
+              </div>
+            </Row>
+          ))}
         </>
       )}
 

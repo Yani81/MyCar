@@ -32,6 +32,12 @@ export interface Refuel {
 
 export type ExpenseKind = 'service' | 'expense'
 
+export interface InsuranceInstallment {
+  amount: number
+  dueDate?: string
+  paid: boolean
+}
+
 export interface Expense {
   id: string
   vehicleId: string
@@ -47,6 +53,7 @@ export interface Expense {
   insuranceType?: string
   insuranceCompany?: string
   insuranceInstallments?: number
+  installments?: InsuranceInstallment[]
   oilType?: string
   oilFilterChanged?: boolean
   fuelFilterChanged?: boolean
