@@ -52,20 +52,22 @@ export function ReportsPage() {
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.range}>
-        {(['month', 'year', 'all'] as Range[]).map((r) => (
-          <button key={r} className={range === r ? styles.rActive : ''} onClick={() => setRange(r)}>
-            {r === 'month' ? 'Този месец' : r === 'year' ? 'Тази година' : 'Всичко'}
-          </button>
-        ))}
-      </div>
+      <div className={styles.stickyFilters}>
+        <div className={styles.range}>
+          {(['month', 'year', 'all'] as Range[]).map((r) => (
+            <button key={r} className={range === r ? styles.rActive : ''} onClick={() => setRange(r)}>
+              {r === 'month' ? 'Този месец' : r === 'year' ? 'Тази година' : 'Всичко'}
+            </button>
+          ))}
+        </div>
 
-      <div className={styles.tabs}>
-        {([['general', 'Общ'], ['fuel', 'Гориво'], ['expense', 'Разходи'], ['income', 'Приход'], ['service', 'Услуга']] as [SubTab, string][]).map(
-          ([id, label]) => (
-            <button key={id} className={tab === id ? styles.tActive : ''} onClick={() => setTab(id)}>{label}</button>
-          )
-        )}
+        <div className={styles.tabs}>
+          {([['general', 'Общ'], ['fuel', 'Гориво'], ['expense', 'Разходи'], ['income', 'Приход'], ['service', 'Услуга']] as [SubTab, string][]).map(
+            ([id, label]) => (
+              <button key={id} className={tab === id ? styles.tActive : ''} onClick={() => setTab(id)}>{label}</button>
+            )
+          )}
+        </div>
       </div>
 
       {!hasData ? (

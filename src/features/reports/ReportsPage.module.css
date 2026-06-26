@@ -2,6 +2,13 @@
   animation: fadeUp 0.3s ease;
   padding-top: 8px;
 }
+.stickyFilters {
+  position: sticky;
+  top: calc(env(safe-area-inset-top) + 74px);
+  z-index: 10;
+  background: var(--bg);
+  padding-top: 6px;
+}
 .range {
   display: flex;
   gap: 4px;
