@@ -118,11 +118,11 @@ export function ExpenseForm({
     setInstallments((prev) => {
       const baseDate = prev[0]?.dueDate || todayDateISO()
       const dates = installmentDates(n, baseDate)
-      return Array.from({ length: n }, (_, i) =>
-        prev[i]
-          ? { ...prev[i], dueDate: prev[i].dueDate || dates[i] }
-          : { amount: '', dueDate: dates[i], paid: false }
-      )
+      return Array.from({ length: n }, (_, i) => ({
+        amount: prev[i]?.amount ?? '',
+        dueDate: dates[i],
+        paid: prev[i]?.paid ?? false,
+      }))
     })
   }
 
