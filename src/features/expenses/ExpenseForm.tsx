@@ -223,21 +223,28 @@ export function ExpenseForm({
               <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
             </Field>
           </Row>
-          {Array.from({ length: insuranceInstallments }, (_, i) => (
-            <Field key={i} label={insuranceInstallments === 1 ? 'Сума (€)' : `Вноска ${i + 1} (€)`}>
-              <input
-                className={inputClass}
-                inputMode="decimal"
-                value={installmentAmounts[i] ?? ''}
-                onChange={(e) => {
-                  const next = [...installmentAmounts]
-                  next[i] = toNumStr(e.target.value)
-                  setInstallmentAmounts(next)
-                }}
-                placeholder="0.00"
-              />
-            </Field>
-          ))}
+          {Array.from({ length: Math.ceil(insuranceInstallments / 2) }, (_, rowIdx) => {
+            const i1 = rowIdx * 2
+            const i2 = i1 + 1
+            const mkField = (i: number) => (
+              <Field key={i} label={insuranceInstallments === 1 ? 'Сума (€)' : `Вноска ${i + 1} (€)`}>
+                <input
+                  className={inputClass}
+                  inputMode="decimal"
+                  value={installmentAmounts[i] ?? ''}
+                  onChange={(e) => {
+                    const next = [...installmentAmounts]
+                    next[i] = toNumStr(e.target.value)
+                    setInstallmentAmounts(next)
+                  }}
+                  placeholder="0.00"
+                />
+              </Field>
+            )
+            return i2 < insuranceInstallments
+              ? <Row key={rowIdx}>{mkField(i1)}{mkField(i2)}</Row>
+              : mkField(i1)
+          })}
         </>
       )}
 
