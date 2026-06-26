@@ -1,9 +1,16 @@
 .header {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 520px;
+  width: 100%;
   background: var(--brand);
-  margin: calc(-1 * (env(safe-area-inset-top) + 8px)) -16px 14px;
-  padding: calc(env(safe-area-inset-top) + 12px) 12px 12px;
-  border-radius: 18px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  margin: 0;
+  padding: calc(env(safe-area-inset-top) + 10px) 12px 12px;
+  border-radius: 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  z-index: 50;
 }
 .selector {
   display: flex;
