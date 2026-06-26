@@ -94,7 +94,7 @@ textarea {
   max-width: 520px;
   margin: 0 auto;
   min-height: 100dvh;
-  padding: calc(env(safe-area-inset-top) + 80px) 16px calc(96px + env(safe-area-inset-bottom)) 16px;
+  padding: calc(env(safe-area-inset-top) + 74px) 16px calc(96px + env(safe-area-inset-bottom)) 16px;
   position: relative;
 }
 

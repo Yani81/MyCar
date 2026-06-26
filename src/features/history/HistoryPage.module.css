@@ -5,7 +5,7 @@
 
 .filterBar {
   position: sticky;
-  top: calc(env(safe-area-inset-top) + 80px);
+  top: calc(env(safe-area-inset-top) + 74px);
   z-index: 10;
   background: var(--bg);
   display: flex;
