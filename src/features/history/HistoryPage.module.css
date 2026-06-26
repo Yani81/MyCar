@@ -1,11 +1,11 @@
 .wrap {
   animation: fadeUp 0.3s ease;
-  padding-top: 8px;
+  padding-top: 0;
 }
 
 .filterBar {
   position: sticky;
-  top: calc(env(safe-area-inset-top) + 74px);
+  top: calc(env(safe-area-inset-top) + 80px);
   z-index: 10;
   background: var(--bg);
   display: flex;
