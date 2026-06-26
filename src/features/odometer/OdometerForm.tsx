@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Modal } from '../../components/ui/Modal'
-import { Field, Row, inputClass } from '../../components/ui/Field'
+import { Field, inputClass } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { computeStats } from '../../lib/calculations'
-import { todayISO, km } from '../../lib/format'
+import { todayISO, toDateTimeLocal, km } from '../../lib/format'
 import type { OdometerReading } from '../../types'
 
 export function OdometerForm({ vehicleId, edit, onClose }: { vehicleId: string; edit: OdometerReading | null; onClose: () => void }) {
@@ -28,7 +28,7 @@ export function OdometerForm({ vehicleId, edit, onClose }: { vehicleId: string; 
       }).currentOdometer
     : 0
 
-  const [date, setDate] = useState(edit?.date ?? todayISO())
+  const [date, setDate] = useState(toDateTimeLocal(edit?.date ?? todayISO()))
   const [odometer, setOdometer] = useState(edit ? String(edit.odometer) : '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
 
@@ -49,14 +49,12 @@ export function OdometerForm({ vehicleId, edit, onClose }: { vehicleId: string; 
       onClose={onClose}
       footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeReading(edit.id); onClose() } : undefined} deleteMsg="Изтриване на показанието?" color="#c2185b" />}
     >
-      <Row>
-        <Field label="Дата">
-          <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </Field>
-        <Field label="Километраж" hint={last > 0 ? `Последно: ${km(last)}` : undefined}>
-          <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
-        </Field>
-      </Row>
+      <Field label="Дата и час">
+        <input className={inputClass} type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
+      </Field>
+      <Field label="Километраж" hint={last > 0 ? `Последно: ${km(last)}` : undefined}>
+        <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
+      </Field>
       <Field label="Бележка (по избор)">
         <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>

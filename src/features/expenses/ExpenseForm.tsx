@@ -3,7 +3,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, selectClass, textareaClass, Toggle, Segmented, CheckGroup } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore } from '../../store/useStore'
-import { todayISO, toNumStr } from '../../lib/format'
+import { todayISO, toDateTimeLocal, toNumStr } from '../../lib/format'
 import { EXPENSE_CATEGORIES, type Expense, type ExpenseKind, type ReminderBasis } from '../../types'
 
 export function ExpenseForm({
@@ -25,7 +25,7 @@ export function ExpenseForm({
   const kind: ExpenseKind = edit?.kind ?? mode
   const cats = EXPENSE_CATEGORIES.filter((c) => c.kind === kind)
 
-  const [date, setDate] = useState(edit?.date ?? todayISO())
+  const [date, setDate] = useState(toDateTimeLocal(edit?.date ?? todayISO()))
   const [categoryId, setCategoryId] = useState(
     edit ? EXPENSE_CATEGORIES.find((c) => c.label === edit.category)?.id ?? cats[0].id : cats[0].id
   )
@@ -115,22 +115,20 @@ export function ExpenseForm({
       <Field label="Описание (по избор)">
         <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. Смяна на накладки" />
       </Field>
+      <Field label="Дата и час">
+        <input className={inputClass} type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
+      </Field>
       <Row>
         <Field label="Сума (€)">
           <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(toNumStr(e.target.value))} placeholder="0.00" />
         </Field>
-        <Field label="Дата">
-          <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </Field>
-      </Row>
-      <Row>
         <Field label="Километраж (по избор)">
           <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
         </Field>
-        <Field label="Място (по избор)">
-          <input className={inputClass} value={place} onChange={(e) => setPlace(e.target.value)} />
-        </Field>
       </Row>
+      <Field label="Място (по избор)">
+        <input className={inputClass} value={place} onChange={(e) => setPlace(e.target.value)} />
+      </Field>
       {isOil && (
         <>
           <Field label="Вид масло (по избор)">

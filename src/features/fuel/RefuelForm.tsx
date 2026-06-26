@@ -1,8 +1,8 @@
 import { useState, useRef, useMemo } from 'react'
 import { Modal } from '../../components/ui/Modal'
-import { Field, Row, inputClass, selectClass, Toggle } from '../../components/ui/Field'
+import { Field, inputClass, selectClass, Toggle } from '../../components/ui/Field'
 import { useStore } from '../../store/useStore'
-import { todayISO, km, toNumStr } from '../../lib/format'
+import { todayISO, toDateTimeLocal, km, toNumStr } from '../../lib/format'
 import { FUEL_LABELS, type Refuel, type FuelType } from '../../types'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
@@ -57,7 +57,7 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
   }, [allRefuels, vehicleId])
 
   const fuels = vehicle?.fuels ?? ['petrol']
-  const [date, setDate] = useState(edit?.date ?? todayISO())
+  const [date, setDate] = useState(toDateTimeLocal(edit?.date ?? todayISO()))
   const [fuelType, setFuelType] = useState<FuelType>(edit?.fuelType ?? fuels[0])
   const [odometer, setOdometer] = useState(edit ? String(edit.odometer) : '')
   const [liters, setLiters] = useState(edit ? String(edit.liters) : '')
@@ -155,14 +155,12 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
       onClose={onClose}
       footer={<FormFooter valid={valid} edit={!!edit} color="#f5821f" onSubmit={submit} onDelete={edit ? () => { removeRefuel(edit.id); onClose() } : undefined} deleteMsg="Изтриване на зареждането?" />}
     >
-      <Row>
-        <Field label="Дата">
-          <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </Field>
-        <Field label="Километраж" hint={lastOdo ? `Последно: ${km(lastOdo)}` : undefined}>
-          <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
-        </Field>
-      </Row>
+      <Field label="Дата и час">
+        <input className={inputClass} type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
+      </Field>
+      <Field label="Километраж" hint={lastOdo ? `Последно: ${km(lastOdo)}` : undefined}>
+        <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
+      </Field>
       {fuels.length > 1 && (
         <Field label="Гориво">
           <select className={selectClass} value={fuelType} onChange={(e) => setFuelType(e.target.value as FuelType)}>

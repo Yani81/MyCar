@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import styles from './HistoryPage.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { useUI, type FormOpen, type HistoryFilter } from '../../store/useUI'
-import { money, km, dateShort } from '../../lib/format'
+import { money, km, dateShort, timeShort } from '../../lib/format'
 import { FUEL_LABELS, type Refuel, type Expense, type Income, type Trip, type OdometerReading } from '../../types'
 import { IconWrench, IconIncome, IconRoute, IconOdometer } from '../../components/Layout/icons'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
@@ -336,6 +336,7 @@ export function HistoryPage() {
       const r = it.entry as Refuel
       return (
         <div className={styles.details}>
+          {timeShort(it.date) && <DetailRow label="Час" value={timeShort(it.date)} />}
           <DetailRow label="Пробег" value={km(r.odometer)} />
           {it.distanceFromPrev != null && it.distanceFromPrev > 0 && (
             <DetailRow label="Разстояние" value={`${km(it.distanceFromPrev)} от предишно зареждане`} />
@@ -362,6 +363,7 @@ export function HistoryPage() {
       const e = it.entry as Expense
       return (
         <div className={styles.details}>
+          {timeShort(it.date) && <DetailRow label="Час" value={timeShort(it.date)} />}
           <DetailRow label="Категория" value={e.category} />
           {e.odometer != null && e.odometer > 0 && <DetailRow label="Километраж" value={km(e.odometer)} />}
           {e.place && <DetailRow label="Място" value={e.place} />}
@@ -375,6 +377,7 @@ export function HistoryPage() {
       const i = it.entry as Income
       return (
         <div className={styles.details}>
+          {timeShort(it.date) && <DetailRow label="Час" value={timeShort(it.date)} />}
           {i.odometer != null && i.odometer > 0 && <DetailRow label="Километраж" value={km(i.odometer)} />}
           {i.notes && <DetailRow label="Бележка" value={i.notes} />}
           <button className={styles.editBtn} onClick={() => openForm(it.open)}>Редактирай</button>
@@ -387,6 +390,7 @@ export function HistoryPage() {
       const dist = Math.max(0, t.endOdometer - t.startOdometer)
       return (
         <div className={styles.details}>
+          {timeShort(it.date) && <DetailRow label="Час" value={timeShort(it.date)} />}
           <DetailRow label="Начало" value={km(t.startOdometer)} />
           <DetailRow label="Край" value={km(t.endOdometer)} />
           <DetailRow label="Разстояние" value={km(dist)} />
@@ -401,6 +405,7 @@ export function HistoryPage() {
       const r = it.entry as OdometerReading
       return (
         <div className={styles.details}>
+          {timeShort(it.date) && <DetailRow label="Час" value={timeShort(it.date)} />}
           <DetailRow label="Показание" value={km(r.odometer)} />
           {r.notes && <DetailRow label="Бележка" value={r.notes} />}
           <button className={styles.editBtn} onClick={() => openForm(it.open)}>Редактирай</button>

@@ -3,7 +3,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore, useActiveVehicle } from '../../store/useStore'
-import { todayISO, km, money, num, toNumStr } from '../../lib/format'
+import { todayISO, toDateTimeLocal, km, money, num, toNumStr } from '../../lib/format'
 import { computeStats } from '../../lib/calculations'
 import type { Trip } from '../../types'
 import styles from './TripForm.module.css'
@@ -23,7 +23,7 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
 
   const [origin, setOrigin] = useState(edit?.origin ?? '')
   const [destination, setDestination] = useState(edit?.destination ?? '')
-  const [date, setDate] = useState(edit?.date ?? todayISO())
+  const [date, setDate] = useState(toDateTimeLocal(edit?.date ?? todayISO()))
   const [startOdometer, setStart] = useState(edit ? String(edit.startOdometer) : '')
   const [endOdometer, setEnd] = useState(edit ? String(edit.endOdometer) : '')
   const [costPerKm, setCostPerKm] = useState(
@@ -73,8 +73,8 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
       <Field label="Дестинация (B)">
         <input className={inputClass} value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="напр. София" />
       </Field>
-      <Field label="Дата">
-        <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      <Field label="Дата и час">
+        <input className={inputClass} type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
       </Field>
       <Row>
         <Field label="Начален км">

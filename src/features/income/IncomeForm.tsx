@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Modal } from '../../components/ui/Modal'
-import { Field, Row, inputClass, selectClass } from '../../components/ui/Field'
+import { Field, inputClass, selectClass } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore } from '../../store/useStore'
-import { todayISO, toNumStr } from '../../lib/format'
+import { todayISO, toDateTimeLocal, toNumStr } from '../../lib/format'
 import { INCOME_CATEGORIES, type Income } from '../../types'
 
 export function IncomeForm({ vehicleId, edit, onClose }: { vehicleId: string; edit: Income | null; onClose: () => void }) {
@@ -11,7 +11,7 @@ export function IncomeForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
   const updateIncome = useStore((s) => s.updateIncome)
   const removeIncome = useStore((s) => s.removeIncome)
 
-  const [date, setDate] = useState(edit?.date ?? todayISO())
+  const [date, setDate] = useState(toDateTimeLocal(edit?.date ?? todayISO()))
   const [category, setCategory] = useState(edit?.category ?? INCOME_CATEGORIES[0])
   const [amount, setAmount] = useState(edit ? String(edit.amount) : '')
   const [odometer, setOdometer] = useState(edit?.odometer ? String(edit.odometer) : '')
@@ -48,14 +48,12 @@ export function IncomeForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
           ))}
         </select>
       </Field>
-      <Row>
-        <Field label="Сума (€)">
-          <input className={inputClass} inputMode="decimal" value={amount} onChange={(e) => setAmount(toNumStr(e.target.value))} placeholder="0.00" />
-        </Field>
-        <Field label="Дата">
-          <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </Field>
-      </Row>
+      <Field label="Дата и час">
+        <input className={inputClass} type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
+      </Field>
+      <Field label="Сума (€)">
+        <input className={inputClass} inputMode="decimal" value={amount} onChange={(e) => setAmount(toNumStr(e.target.value))} placeholder="0.00" />
+      </Field>
       <Field label="Километраж (по избор)">
         <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
       </Field>
