@@ -122,12 +122,12 @@ export const EXPENSE_CATEGORIES: { id: string; label: string; kind: ExpenseKind 
   { id: 'parts', label: 'Части', kind: 'service' },
   { id: 'suspension', label: 'Окачване', kind: 'service' },
   { id: 'belts', label: 'Ремъци', kind: 'service' },
+  { id: 'wipers', label: 'Чистачки', kind: 'service' },
   { id: 'insurance', label: 'Застраховка', kind: 'expense' },
   { id: 'tax', label: 'Данък / винетка', kind: 'expense' },
   { id: 'wash', label: 'Автомивка', kind: 'expense' },
   { id: 'parking', label: 'Паркинг', kind: 'expense' },
   { id: 'fine', label: 'Глоба', kind: 'expense' },
-  { id: 'wipers', label: 'Чистачки', kind: 'expense' },
   { id: 'other', label: 'Друго', kind: 'expense' },
 ]
 
