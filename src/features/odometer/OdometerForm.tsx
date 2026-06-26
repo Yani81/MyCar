@@ -30,13 +30,12 @@ export function OdometerForm({ vehicleId, edit, onClose }: { vehicleId: string; 
 
   const [date, setDate] = useState(edit?.date ?? todayISO())
   const [odometer, setOdometer] = useState(edit ? String(edit.odometer) : '')
-  const [driver, setDriver] = useState(edit?.driver ?? '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
 
   const valid = Number(odometer) > 0
   const submit = () => {
     if (!valid) return
-    const payload = { vehicleId, date, odometer: Number(odometer), driver: driver.trim() || undefined, notes: notes.trim() || undefined }
+    const payload = { vehicleId, date, odometer: Number(odometer), notes: notes.trim() || undefined }
     if (edit) updateReading(edit.id, payload)
     else addReading(payload)
     onClose()
@@ -58,9 +57,6 @@ export function OdometerForm({ vehicleId, edit, onClose }: { vehicleId: string; 
           <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
         </Field>
       </Row>
-      <Field label="Шофьор (по избор)">
-        <input className={inputClass} value={driver} onChange={(e) => setDriver(e.target.value)} />
-      </Field>
       <Field label="Бележка (по избор)">
         <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>

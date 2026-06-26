@@ -15,7 +15,6 @@ export function IncomeForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
   const [category, setCategory] = useState(edit?.category ?? INCOME_CATEGORIES[0])
   const [amount, setAmount] = useState(edit ? String(edit.amount) : '')
   const [odometer, setOdometer] = useState(edit?.odometer ? String(edit.odometer) : '')
-  const [driver, setDriver] = useState(edit?.driver ?? '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
 
   const valid = Number(amount) > 0
@@ -27,7 +26,6 @@ export function IncomeForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
       category,
       amount: Number(amount),
       odometer: Number(odometer) || undefined,
-      driver: driver.trim() || undefined,
       notes: notes.trim() || undefined,
     }
     if (edit) updateIncome(edit.id, payload)
@@ -58,14 +56,9 @@ export function IncomeForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
           <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
       </Row>
-      <Row>
-        <Field label="Километраж (по избор)">
-          <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
-        </Field>
-        <Field label="Шофьор (по избор)">
-          <input className={inputClass} value={driver} onChange={(e) => setDriver(e.target.value)} />
-        </Field>
-      </Row>
+      <Field label="Километраж (по избор)">
+        <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
+      </Field>
       <Field label="Бележка (по избор)">
         <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>

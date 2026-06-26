@@ -72,7 +72,6 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
     edit?.station && !stationOptions.includes(edit.station) ? edit.station : ''
   )
   const station = stationPick === '__new__' ? stationText : stationPick
-  const [driver, setDriver] = useState(edit?.driver ?? '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
   const [receiptImage, setReceiptImage] = useState(edit?.receiptImage ?? '')
   const [location, setLocation] = useState(edit?.location ?? '')
@@ -139,7 +138,6 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
       fullTank,
       missedFill,
       station: station.trim() || undefined,
-      driver: driver.trim() || undefined,
       notes: notes.trim() || undefined,
       receiptImage: receiptImage || undefined,
       location: location.trim() || undefined,
@@ -233,9 +231,6 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
             <button type="button" onClick={() => { setStationPick(''); setStationText('') }} style={{ fontSize: 18, color: 'var(--muted)', padding: '0 4px' }}>✕</button>
           </div>
         )}
-      </Field>
-      <Field label="Шофьор">
-        <input className={inputClass} value={driver} onChange={(e) => setDriver(e.target.value)} />
       </Field>
       <Field label="Локация">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

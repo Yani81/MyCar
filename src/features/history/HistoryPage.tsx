@@ -343,7 +343,6 @@ export function HistoryPage() {
           <DetailRow label="Вид" badge={r.fullTank ? 'Пълен резервоар' : 'Частично'} />
           <DetailRow label="Гориво" value={FUEL_LABELS[r.fuelType]} />
           {r.station && <DetailRow label="Бензиностанция" value={r.station} />}
-          {r.driver && <DetailRow label="Шофьор" value={r.driver} />}
           {r.notes && <DetailRow label="Бележка" value={r.notes} />}
           {r.location && <DetailRow label="Локация" value={r.location} />}
           {it.receiptImage && (
@@ -366,7 +365,6 @@ export function HistoryPage() {
           <DetailRow label="Категория" value={e.category} />
           {e.odometer != null && e.odometer > 0 && <DetailRow label="Километраж" value={km(e.odometer)} />}
           {e.place && <DetailRow label="Място" value={e.place} />}
-          {e.driver && <DetailRow label="Шофьор" value={e.driver} />}
           {e.notes && <DetailRow label="Бележка" value={e.notes} />}
           <button className={styles.editBtn} onClick={() => openForm(it.open)}>Редактирай</button>
         </div>
@@ -378,7 +376,6 @@ export function HistoryPage() {
       return (
         <div className={styles.details}>
           {i.odometer != null && i.odometer > 0 && <DetailRow label="Километраж" value={km(i.odometer)} />}
-          {i.driver && <DetailRow label="Шофьор" value={i.driver} />}
           {i.notes && <DetailRow label="Бележка" value={i.notes} />}
           <button className={styles.editBtn} onClick={() => openForm(it.open)}>Редактирай</button>
         </div>
@@ -394,7 +391,6 @@ export function HistoryPage() {
           <DetailRow label="Край" value={km(t.endOdometer)} />
           <DetailRow label="Разстояние" value={km(dist)} />
           {t.reason && <DetailRow label="Причина" value={t.reason} />}
-          {t.driver && <DetailRow label="Шофьор" value={t.driver} />}
           {t.notes && <DetailRow label="Бележка" value={t.notes} />}
           <button className={styles.editBtn} onClick={() => openForm(it.open)}>Редактирай</button>
         </div>
@@ -406,7 +402,6 @@ export function HistoryPage() {
       return (
         <div className={styles.details}>
           <DetailRow label="Показание" value={km(r.odometer)} />
-          {r.driver && <DetailRow label="Шофьор" value={r.driver} />}
           {r.notes && <DetailRow label="Бележка" value={r.notes} />}
           <button className={styles.editBtn} onClick={() => openForm(it.open)}>Редактирай</button>
         </div>

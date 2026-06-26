@@ -34,7 +34,6 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
         : ''
   )
   const [reason, setReason] = useState(edit?.reason ?? '')
-  const [driver, setDriver] = useState(edit?.driver ?? '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
 
   const distance = Math.max(0, Number(endOdometer) - Number(startOdometer))
@@ -53,7 +52,6 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
       costPerKm: Number(costPerKm) || undefined,
       total,
       reason: reason.trim() || undefined,
-      driver: driver.trim() || undefined,
       notes: notes.trim() || undefined,
     }
     if (edit) updateTrip(edit.id, payload)
@@ -109,14 +107,9 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
         </div>
       )}
       {total > 0 && <div style={{ fontSize: 13, color: 'var(--muted)' }}>Общо: <b style={{ color: 'var(--text)' }}>{money(total)}</b></div>}
-      <Row>
-        <Field label="Причина (по избор)">
-          <input className={inputClass} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="напр. служебно" />
-        </Field>
-        <Field label="Шофьор (по избор)">
-          <input className={inputClass} value={driver} onChange={(e) => setDriver(e.target.value)} />
-        </Field>
-      </Row>
+      <Field label="Причина (по избор)">
+        <input className={inputClass} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="напр. служебно" />
+      </Field>
       <Field label="Бележка (по избор)">
         <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>

@@ -33,7 +33,6 @@ export function ExpenseForm({
   const [cost, setCost] = useState(edit ? String(edit.cost) : '')
   const [odometer, setOdometer] = useState(edit?.odometer ? String(edit.odometer) : '')
   const [place, setPlace] = useState(edit?.place ?? '')
-  const [driver, setDriver] = useState(edit?.driver ?? '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
 
   // Oil change specific
@@ -68,7 +67,6 @@ export function ExpenseForm({
       cost: Number(cost),
       odometer: Number(odometer) || undefined,
       place: place.trim() || undefined,
-      driver: driver.trim() || undefined,
       notes: notes.trim() || undefined,
       ...(isOil && {
         oilType: oilType.trim() || undefined,
@@ -133,10 +131,6 @@ export function ExpenseForm({
           <input className={inputClass} value={place} onChange={(e) => setPlace(e.target.value)} />
         </Field>
       </Row>
-      <Field label="Шофьор (по избор)">
-        <input className={inputClass} value={driver} onChange={(e) => setDriver(e.target.value)} />
-      </Field>
-
       {isOil && (
         <>
           <Field label="Вид масло (по избор)">

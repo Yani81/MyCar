@@ -25,7 +25,6 @@ export interface Refuel {
   /** Предходно зареждане е пропуснато → разходът за периода е недостоверен */
   missedFill: boolean
   station?: string
-  driver?: string
   notes?: string
   receiptImage?: string
   location?: string
@@ -43,7 +42,6 @@ export interface Expense {
   title?: string
   cost: number
   place?: string
-  driver?: string
   notes?: string
   oilType?: string
   oilFilterChanged?: boolean
@@ -58,7 +56,6 @@ export interface Income {
   odometer?: number
   category: string
   amount: number
-  driver?: string
   notes?: string
 }
 
@@ -73,7 +70,6 @@ export interface Trip {
   costPerKm?: number
   total: number
   reason?: string
-  driver?: string
   notes?: string
 }
 
@@ -82,7 +78,6 @@ export interface OdometerReading {
   vehicleId: string
   date: string
   odometer: number
-  driver?: string
   notes?: string
 }
 
