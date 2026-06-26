@@ -8,6 +8,20 @@ import { EXPENSE_CATEGORIES, type Expense, type ExpenseKind, type ReminderBasis 
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
 import styles from './ExpenseForm.module.css'
 
+const INSURANCE_TYPES = ['Гражданска отговорност', 'Каско']
+
+const DEFAULT_INSURERS = [
+  'Алианц България', 'Армеец', 'Булстрад', 'ДЗИ', 'Евроинс',
+  'Generali', 'Лев Инс', 'ОЗК', 'Уника', 'Хелвеция',
+]
+
+const INSTALLMENT_OPTIONS = [
+  { value: 1, label: 'Една вноска' },
+  { value: 2, label: 'Две вноски' },
+  { value: 3, label: 'Три вноски' },
+  { value: 4, label: 'Четири вноски' },
+]
+
 function compressImage(file: File): Promise<string> {
   return new Promise((resolve) => {
     const reader = new FileReader()
@@ -61,6 +75,19 @@ export function ExpenseForm({
   const [showLightbox, setShowLightbox] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Insurance specific
+  const [insuranceType, setInsuranceType] = useState(edit?.insuranceType ?? INSURANCE_TYPES[0])
+  const [insuranceInstallments, setInsuranceInstallments] = useState(edit?.insuranceInstallments ?? 1)
+  const [insurerPick, setInsurerPick] = useState<string>(
+    edit?.insuranceCompany
+      ? (DEFAULT_INSURERS.includes(edit.insuranceCompany) ? edit.insuranceCompany : '__new__')
+      : ''
+  )
+  const [insurerText, setInsurerText] = useState(
+    edit?.insuranceCompany && !DEFAULT_INSURERS.includes(edit.insuranceCompany) ? edit.insuranceCompany : ''
+  )
+  const insuranceCompany = insurerPick === '__new__' ? insurerText : insurerPick
+
   // Oil change specific
   const [oilType, setOilType] = useState(edit?.oilType ?? '')
   const [oilFilter, setOilFilter] = useState(edit?.oilFilterChanged ?? false)
@@ -77,6 +104,7 @@ export function ExpenseForm({
 
   const cat = EXPENSE_CATEGORIES.find((c) => c.id === categoryId) ?? cats[0]
   const isOil = cat.id === 'oil'
+  const isInsurance = cat.id === 'insurance'
   const showReminderDate = reminderBasis === 'date' || reminderBasis === 'both'
   const showReminderOdo = reminderBasis === 'odometer' || reminderBasis === 'both'
 
@@ -95,6 +123,11 @@ export function ExpenseForm({
       place: place.trim() || undefined,
       notes: notes.trim() || undefined,
       receiptImage: receiptImage || undefined,
+      ...(isInsurance && {
+        insuranceType,
+        insuranceCompany: insuranceCompany.trim() || undefined,
+        insuranceInstallments,
+      }),
       ...(isOil && {
         oilType: oilType.trim() || undefined,
         oilFilterChanged: oilFilter || undefined,
@@ -161,6 +194,37 @@ export function ExpenseForm({
       <Field label="Място (по избор)">
         <input className={inputClass} value={place} onChange={(e) => setPlace(e.target.value)} />
       </Field>
+      {isInsurance && (
+        <>
+          <Field label="Вид застраховка">
+            <select className={selectClass} value={insuranceType} onChange={(e) => setInsuranceType(e.target.value)}>
+              {INSURANCE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </Field>
+          <Field label="Застрахователна компания">
+            {insurerPick !== '__new__' ? (
+              <select className={selectClass} value={insurerPick} onChange={(e) => setInsurerPick(e.target.value)}>
+                <option value=""></option>
+                {DEFAULT_INSURERS.map((c) => <option key={c} value={c}>{c}</option>)}
+                <option value="__new__">+ Добави друга...</option>
+              </select>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input className={inputClass} style={{ flex: 1 }} value={insurerText}
+                  onChange={(e) => setInsurerText(e.target.value)} placeholder="напр. Дженерали" autoFocus />
+                <button type="button" onClick={() => { setInsurerPick(''); setInsurerText('') }}
+                  style={{ fontSize: 18, color: 'var(--muted)', padding: '0 4px' }}>✕</button>
+              </div>
+            )}
+          </Field>
+          <Field label="Брой вноски">
+            <select className={selectClass} value={insuranceInstallments}
+              onChange={(e) => setInsuranceInstallments(Number(e.target.value))}>
+              {INSTALLMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </Field>
+        </>
+      )}
       {isOil && (
         <>
           <Field label="Вид масло (по избор)">
