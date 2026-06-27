@@ -57,10 +57,10 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
 
   const checks = vehicleChecks[v.id] ?? {}
   const checkItems = [
-    { key: 'go' as const, label: 'ГО' },
-    { key: 'gtp' as const, label: 'ГТП' },
+    { key: 'go' as const, label: 'Гражданска отговорност' },
+    { key: 'gtp' as const, label: 'Технически преглед' },
     { key: 'vignette' as const, label: 'Винетка' },
-    { key: 'delict' as const, label: 'Глоби' },
+    { key: 'delict' as const, label: 'Глоби BGToll' },
   ]
 
   return (
@@ -116,7 +116,11 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
                 <div className={styles.checksCellInfo}>
                   <span className={styles.checksLabel}>{label}</span>
                   <span className={styles.checksVal}>
-                    {r ? (r.validUntil ?? (r.valid ? 'OK' : 'Невалидно')) : '—'}
+                    {r
+                      ? key === 'delict'
+                        ? (r.valid ? `Няма до ${dateShort(r.checkedAt)}` : 'Има глоби')
+                        : (r.validUntil ?? (r.valid ? 'ОК' : 'Невалидно'))
+                      : '—'}
                   </span>
                 </div>
               </div>
