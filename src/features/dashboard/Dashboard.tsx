@@ -119,7 +119,7 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
                     {r
                       ? key === 'delict'
                         ? (r.valid ? `Няма до ${dateShort(r.checkedAt)}` : 'Има глоби')
-                        : (r.validUntil ?? (r.valid ? 'ОК' : 'Невалидно'))
+                        : (r.validUntil ? `До ${r.validUntil}` : (r.valid ? 'ОК' : 'Невалидно'))
                       : '—'}
                   </span>
                 </div>
