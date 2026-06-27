@@ -16,8 +16,14 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
   const [gtpLoading, setGtpLoading] = useState(false)
   const [vignetteLoading, setVignetteLoading] = useState(false)
   const [delictLoading, setDelictLoading] = useState(false)
+  const [katLoading, setKatLoading] = useState(false)
+
   const [showEgnModal, setShowEgnModal] = useState(false)
   const [egnInput, setEgnInput] = useState('')
+
+  const [showKatModal, setShowKatModal] = useState(false)
+  const [katEgn, setKatEgn] = useState('')
+  const [katLicense, setKatLicense] = useState('')
 
   if (!v) return null
 
@@ -85,6 +91,28 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
     }
   }
 
+  const checkKAT = async () => {
+    if (!katEgn.trim() || !katLicense.trim()) return
+    const egnVal = katEgn.trim()
+    const licVal = katLicense.trim()
+    setShowKatModal(false)
+    setKatEgn('')
+    setKatLicense('')
+    setKatLoading(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('check-kat', {
+        body: { egn: egnVal, license: licVal },
+      })
+      if (error) throw error
+      const d = data as { hasObligations: boolean; count: number; message: string }
+      saveCheck(v.id, 'kat', { valid: !d.hasObligations, checkedAt: today, message: d.message })
+    } catch {
+      saveCheck(v.id, 'kat', { valid: false, checkedAt: today, message: 'Грешка при проверката.' })
+    } finally {
+      setKatLoading(false)
+    }
+  }
+
   const cards = [
     {
       key: 'go' as const,
@@ -115,14 +143,25 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
     },
     {
       key: 'delict' as const,
-      title: 'Глоби (bgtoll)',
+      title: 'Глоби BGToll',
       color: '#c2185b',
       loading: delictLoading,
       onCheck: () => setShowEgnModal(true),
       formatSub: (r: typeof checks.delict) =>
         r ? r.message : v.plate || 'Натисни Провери',
     },
+    {
+      key: 'kat' as const,
+      title: 'Глоби КАТ (МВР)',
+      color: '#1976d2',
+      loading: katLoading,
+      onCheck: () => setShowKatModal(true),
+      formatSub: (r: typeof checks.kat) =>
+        r ? r.message : 'Натисни Провери',
+    },
   ]
+
+  const katReady = katEgn.trim().length > 0 && katLicense.trim().length > 0
 
   return (
     <div className={styles.wrap}>
@@ -165,7 +204,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
 
       <Modal
         open={showEgnModal}
-        title="Провери глоби"
+        title="Провери глоби BGToll"
         onClose={() => setShowEgnModal(false)}
         color="#c2185b"
         footer={
@@ -197,6 +236,50 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
           value={egnInput}
           onChange={(e) => setEgnInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && checkDelict()}
+        />
+      </Modal>
+
+      <Modal
+        open={showKatModal}
+        title="Провери глоби КАТ"
+        onClose={() => { setShowKatModal(false); setKatEgn(''); setKatLicense('') }}
+        color="#1976d2"
+        footer={
+          <button
+            style={{
+              flex: 1,
+              padding: 15,
+              borderRadius: 14,
+              background: katReady ? '#1976d2' : 'var(--surface-3)',
+              color: katReady ? '#fff' : 'var(--faint)',
+              fontWeight: 700,
+            }}
+            onClick={checkKAT}
+            disabled={!katReady}
+          >
+            Провери
+          </button>
+        }
+      >
+        <p style={{ marginBottom: 12, color: 'var(--text-2)', fontSize: 14 }}>
+          Въведи ЕГН и номер на СУМПС. Данните не се записват в приложението.
+        </p>
+        <input
+          className={inputClass}
+          type="text"
+          inputMode="numeric"
+          placeholder="ЕГН"
+          value={katEgn}
+          onChange={(e) => setKatEgn(e.target.value)}
+          style={{ marginBottom: 10 }}
+        />
+        <input
+          className={inputClass}
+          type="text"
+          placeholder="Номер на СУМПС"
+          value={katLicense}
+          onChange={(e) => setKatLicense(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && checkKAT()}
         />
       </Modal>
     </div>

@@ -220,6 +220,12 @@
 .checksCell:nth-child(4) {
   border-top: 1px solid var(--border);
 }
+.checksCell:nth-child(5) {
+  grid-column: span 2;
+  border-right: none;
+  border-top: 1px solid var(--border);
+  padding-right: 4px;
+}
 .dot {
   width: 10px;
   height: 10px;

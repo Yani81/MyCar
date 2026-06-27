@@ -61,6 +61,7 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
     { key: 'gtp' as const, label: 'Технически преглед' },
     { key: 'vignette' as const, label: 'Винетка' },
     { key: 'delict' as const, label: 'Глоби BGToll' },
+    { key: 'kat' as const, label: 'Глоби КАТ (МВР)' },
   ]
 
   return (
@@ -117,8 +118,10 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
                   <span className={styles.checksLabel}>{label}</span>
                   <span className={styles.checksVal}>
                     {r
-                      ? key === 'delict'
-                        ? (r.valid ? `Няма до ${dateShort(r.checkedAt)}` : 'Има глоби')
+                      ? key === 'delict' || key === 'kat'
+                        ? (r.valid
+                            ? key === 'delict' ? `Няма до ${dateShort(r.checkedAt)}` : 'Няма'
+                            : key === 'delict' ? 'Има глоби' : 'Има задължения')
                         : (r.validUntil ? `До ${r.validUntil}` : (r.valid ? 'ОК' : 'Невалидно'))
                       : '—'}
                   </span>

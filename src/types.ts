@@ -148,4 +148,5 @@ export interface VehicleChecks {
   gtp?: VehicleCheckResult
   vignette?: VehicleCheckResult
   delict?: VehicleCheckResult
+  kat?: VehicleCheckResult
 }
