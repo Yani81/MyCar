@@ -9,6 +9,8 @@ import type {
   OdometerReading,
   Reminder,
   FuelType,
+  VehicleChecks,
+  VehicleCheckResult,
 } from '../types'
 import { uid } from '../lib/id'
 import type { StoreData } from '../lib/sync'
@@ -57,6 +59,9 @@ interface State {
   addReminder: (r: Omit<Reminder, 'id'>) => void
   updateReminder: (id: string, patch: Partial<Reminder>) => void
   removeReminder: (id: string) => void
+
+  vehicleChecks: Record<string, VehicleChecks>
+  saveCheck: (vehicleId: string, type: keyof VehicleChecks, result: VehicleCheckResult) => void
 }
 
 const defaultVehicle = (): Vehicle => ({
@@ -152,6 +157,15 @@ export const useStore = create<State>()(
         addReminder: (r) => set((s) => ({ reminders: [...s.reminders, { ...r, id: uid() }] })),
         updateReminder: upd('reminders'),
         removeReminder: del('reminders'),
+
+        vehicleChecks: {},
+        saveCheck: (vehicleId, type, result) =>
+          set((s) => ({
+            vehicleChecks: {
+              ...s.vehicleChecks,
+              [vehicleId]: { ...s.vehicleChecks[vehicleId], [type]: result },
+            },
+          })),
       }
     },
     {

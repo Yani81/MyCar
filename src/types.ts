@@ -135,3 +135,17 @@ export const INCOME_CATEGORIES = ['Превоз', 'Споделено пътув
 
 /** Типове записи за централното меню и историята */
 export type EntryType = 'refuel' | 'expense' | 'income' | 'service' | 'trip' | 'odometer' | 'reminder'
+
+export interface VehicleCheckResult {
+  valid: boolean
+  validUntil?: string
+  checkedAt: string
+  message: string
+}
+
+export interface VehicleChecks {
+  go?: VehicleCheckResult
+  gtp?: VehicleCheckResult
+  vignette?: VehicleCheckResult
+  delict?: VehicleCheckResult
+}

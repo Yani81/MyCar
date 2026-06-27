@@ -168,55 +168,70 @@
 .ok {
   color: var(--green);
 }
-.goCard {
+.checksCard {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  width: 100%;
   margin-top: 10px;
   padding: 14px 16px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  text-align: left;
+  transition: background 0.15s;
 }
-.goValid {
-  border-color: var(--green);
-  background: var(--green-soft);
+.checksCard:active {
+  background: var(--surface-2);
 }
-.goInvalid {
-  border-color: var(--red);
-  background: var(--red-soft);
-}
-.goInfo {
+.checksHeader {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-  min-width: 0;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
-.goTitle {
+.checksTitle {
   font-weight: 600;
   font-size: 14px;
 }
-.goSub {
+.checksArrow {
+  font-size: 18px;
+  color: var(--muted);
+  line-height: 1;
+}
+.checksGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.checksCell {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dotGreen { background: var(--green); }
+.dotRed { background: var(--red); }
+.dotGray { background: var(--border); }
+.checksCellInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.checksLabel {
   font-size: 12px;
+  font-weight: 600;
+}
+.checksVal {
+  font-size: 11px;
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.goBtn {
-  flex-shrink: 0;
-  padding: 8px 16px;
-  background: var(--brand);
-  color: #fff;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 700;
-  font-family: var(--font-body);
-  transition: opacity 0.15s;
-}
-.goBtn:disabled {
-  opacity: 0.6;
 }
 .activity {
   display: flex;

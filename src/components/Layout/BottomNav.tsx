@@ -2,7 +2,7 @@ import styles from './BottomNav.module.css'
 import { IconGauge, IconList, IconBell, IconChart, IconPlus } from './icons'
 import { useUI } from '../../store/useUI'
 
-export type Tab = 'dashboard' | 'history' | 'reminders' | 'reports'
+export type Tab = 'dashboard' | 'history' | 'reminders' | 'reports' | 'checks'
 
 const LEFT: { id: Tab; label: string; Icon: typeof IconGauge }[] = [
   { id: 'dashboard', label: 'Табло', Icon: IconGauge },

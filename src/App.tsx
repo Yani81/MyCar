@@ -5,6 +5,7 @@ import { Dashboard } from './features/dashboard/Dashboard'
 import { HistoryPage } from './features/history/HistoryPage'
 import { RemindersPage } from './features/reminders/RemindersPage'
 import { ReportsPage } from './features/reports/ReportsPage'
+import { ChecksPage } from './features/checks/ChecksPage'
 import { Forms } from './features/Forms'
 import { AddMenu } from './components/Layout/AddMenu'
 import { AuthPage } from './features/auth/AuthPage'
@@ -118,6 +119,7 @@ export default function App() {
       {tab === 'history' && <HistoryPage />}
       {tab === 'reminders' && <RemindersPage />}
       {tab === 'reports' && <ReportsPage />}
+      {tab === 'checks' && <ChecksPage go={setTab} />}
       <BottomNav active={tab} onChange={setTab} />
       <AddMenu />
       <Forms />

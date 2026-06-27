@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import styles from './Dashboard.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { useUI, type FormOpen } from '../../store/useUI'
@@ -7,14 +7,6 @@ import { money, km, num, dateShort } from '../../lib/format'
 import type { Tab } from '../../components/Layout/BottomNav'
 import { FUEL_LABELS } from '../../types'
 import { IconFuel, IconWrench, IconIncome, IconRoute, IconBell } from '../../components/Layout/icons'
-import { supabase } from '../../lib/supabase'
-import { Modal } from '../../components/ui/Modal'
-import { inputClass } from '../../components/ui/Field'
-
-type GoResult = { valid: boolean; message: string; validUntil?: string } | null
-type GtpResult = { valid: boolean; message: string; validUntil?: string } | null
-type VignetteResult = { valid: boolean; message: string; validUntil?: string } | null
-type DelictResult = { hasDelicts: boolean; count: number; message: string } | null
 
 export function Dashboard({ go }: { go: (t: Tab) => void }) {
   const v = useActiveVehicle()
@@ -24,6 +16,7 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
   const trips = useStore((s) => s.trips)
   const readings = useStore((s) => s.readings)
   const reminders = useStore((s) => s.reminders)
+  const vehicleChecks = useStore((s) => s.vehicleChecks)
   const openForm = useUI((s) => s.openForm)
 
   const d = useMemo(() => {
@@ -59,129 +52,19 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
     return { stats, nextRem, recent, lastRefuel, lastKm }
   }, [v, refuels, expenses, incomes, trips, readings, reminders])
 
-  const [goResult, setGoResult] = useState<GoResult>(null)
-  const [goLoading, setGoLoading] = useState(false)
-  const [gtpResult, setGtpResult] = useState<GtpResult>(null)
-  const [gtpLoading, setGtpLoading] = useState(false)
-  const [vignetteResult, setVignetteResult] = useState<VignetteResult>(null)
-  const [vignetteLoading, setVignetteLoading] = useState(false)
-  const [delictResult, setDelictResult] = useState<DelictResult>(null)
-  const [delictLoading, setDelictLoading] = useState(false)
-  const [showEgnModal, setShowEgnModal] = useState(false)
-  const [egnInput, setEgnInput] = useState('')
-
-  const checkGTP = async () => {
-    setGtpLoading(true)
-    setGtpResult(null)
-    try {
-      const { data, error } = await supabase.functions.invoke('check-gtp', {
-        body: { plate: v?.plate ?? '' },
-      })
-      if (error) throw error
-      setGtpResult(data as GtpResult)
-    } catch {
-      setGtpResult({ valid: false, message: 'Грешка при проверката. Опитай отново.' })
-    } finally {
-      setGtpLoading(false)
-    }
-  }
-
-  const checkDelict = async () => {
-    if (!egnInput.trim()) return
-    setShowEgnModal(false)
-    setDelictLoading(true)
-    setDelictResult(null)
-    try {
-      const { data, error } = await supabase.functions.invoke('check-delict', {
-        body: { plate: v?.plate ?? '', egn: egnInput.trim(), country: 'BG' },
-      })
-      if (error) throw error
-      setDelictResult(data as DelictResult)
-    } catch {
-      setDelictResult({ hasDelicts: false, count: 0, message: 'Грешка при проверката. Опитай отново.' })
-    } finally {
-      setDelictLoading(false)
-      setEgnInput('')
-    }
-  }
-
-  const checkVignette = async () => {
-    setVignetteLoading(true)
-    setVignetteResult(null)
-    try {
-      const { data, error } = await supabase.functions.invoke('check-vignette', {
-        body: { plate: v?.plate ?? '', country: 'BG' },
-      })
-      if (error) throw error
-      setVignetteResult(data as VignetteResult)
-    } catch {
-      setVignetteResult({ valid: false, message: 'Грешка при проверката. Опитай отново.' })
-    } finally {
-      setVignetteLoading(false)
-    }
-  }
-
-  const checkGO = async () => {
-    setGoLoading(true)
-    setGoResult(null)
-    try {
-      const { data, error } = await supabase.functions.invoke('check-go', {
-        body: { plate: v?.plate ?? '' },
-      })
-      if (error) throw error
-      setGoResult(data as GoResult)
-    } catch {
-      setGoResult({ valid: false, message: 'Грешка при проверката. Опитай отново.' })
-    } finally {
-      setGoLoading(false)
-    }
-  }
-
   if (!v || !d) return null
-
-  const egnModal = (
-    <Modal
-      open={showEgnModal}
-      title="Провери глоби"
-      onClose={() => setShowEgnModal(false)}
-      color="#c2185b"
-      footer={
-        <button
-          style={{
-            flex: 1,
-            padding: 15,
-            borderRadius: 14,
-            background: egnInput.trim() ? '#c2185b' : 'var(--surface-3)',
-            color: egnInput.trim() ? '#fff' : 'var(--faint)',
-            fontWeight: 700,
-          }}
-          onClick={checkDelict}
-          disabled={!egnInput.trim()}
-        >
-          Провери
-        </button>
-      }
-    >
-      <p style={{ marginBottom: 12, color: 'var(--text-2)', fontSize: 14 }}>
-        Въведи ЕГН или ЕИК за проверка на <strong>{v.plate}</strong>.
-        ЕГН не се записва в приложението.
-      </p>
-      <input
-        className={inputClass}
-        type="text"
-        inputMode="numeric"
-        placeholder="ЕГН или ЕИК"
-        value={egnInput}
-        onChange={(e) => setEgnInput(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && checkDelict()}
-      />
-    </Modal>
-  )
   const { stats, nextRem, recent } = d
+
+  const checks = vehicleChecks[v.id] ?? {}
+  const checkItems = [
+    { key: 'go' as const, label: 'ГО' },
+    { key: 'gtp' as const, label: 'ГТП' },
+    { key: 'vignette' as const, label: 'Винетка' },
+    { key: 'delict' as const, label: 'Глоби' },
+  ]
 
   return (
     <div className={styles.wrap}>
-      {egnModal}
       <div className={styles.hero}>
         <div className={styles.heroTop}>
           <span>Среден разход{v.fuels.length > 1 ? ` · ${FUEL_LABELS[v.fuels[0]]}+` : ''}</span>
@@ -203,7 +86,6 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
         <Stat label="Приход" value={money(stats.totalIncome)} />
       </div>
 
-
       <div className={styles.total}>
         <span>Общо разходи</span>
         <span className="mono">{money(stats.totalCost)}</span>
@@ -219,81 +101,29 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
         </button>
       )}
 
-      <div className={`${styles.goCard} ${goResult ? (goResult.valid ? styles.goValid : styles.goInvalid) : ''}`}>
-        <div className={styles.goInfo}>
-          <span className={styles.goTitle}>Гражданска отговорност</span>
-          <span className={styles.goSub}>
-            {goLoading
-              ? 'Проверява...'
-              : goResult
-                ? goResult.valid && goResult.validUntil
-                  ? `Валидна до ${goResult.validUntil}`
-                  : goResult.valid
-                    ? 'Валидна'
-                    : 'Няма валидна застраховка'
-                : v.plate || 'Провери застраховката'}
-          </span>
+      <button className={styles.checksCard} onClick={() => go('checks')}>
+        <div className={styles.checksHeader}>
+          <span className={styles.checksTitle}>Статус на документи</span>
+          <span className={styles.checksArrow}>›</span>
         </div>
-        <button className={styles.goBtn} onClick={checkGO} disabled={goLoading}>
-          {goLoading ? '…' : 'Провери'}
-        </button>
-      </div>
-
-      <div className={`${styles.goCard} ${gtpResult ? (gtpResult.valid ? styles.goValid : styles.goInvalid) : ''}`}>
-        <div className={styles.goInfo}>
-          <span className={styles.goTitle}>Технически преглед</span>
-          <span className={styles.goSub}>
-            {gtpLoading
-              ? 'Проверява...'
-              : gtpResult
-                ? gtpResult.valid && gtpResult.validUntil
-                  ? `Валиден до ${gtpResult.validUntil}`
-                  : gtpResult.valid
-                    ? 'Валиден'
-                    : 'Няма валиден ГТП'
-                : v.plate || 'Провери ГТП'}
-          </span>
+        <div className={styles.checksGrid}>
+          {checkItems.map(({ key, label }) => {
+            const r = checks[key]
+            const ok = r ? r.valid : null
+            return (
+              <div key={key} className={styles.checksCell}>
+                <span className={`${styles.dot} ${ok === true ? styles.dotGreen : ok === false ? styles.dotRed : styles.dotGray}`} />
+                <div className={styles.checksCellInfo}>
+                  <span className={styles.checksLabel}>{label}</span>
+                  <span className={styles.checksVal}>
+                    {r ? (r.validUntil ?? (r.valid ? 'OK' : 'Невалидно')) : '—'}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
         </div>
-        <button className={styles.goBtn} onClick={checkGTP} disabled={gtpLoading}>
-          {gtpLoading ? '…' : 'Провери'}
-        </button>
-      </div>
-
-      <div className={`${styles.goCard} ${vignetteResult ? (vignetteResult.valid ? styles.goValid : styles.goInvalid) : ''}`}>
-        <div className={styles.goInfo}>
-          <span className={styles.goTitle}>Електронна винетка</span>
-          <span className={styles.goSub}>
-            {vignetteLoading
-              ? 'Проверява...'
-              : vignetteResult
-                ? vignetteResult.valid && vignetteResult.validUntil
-                  ? `Валидна до ${vignetteResult.validUntil}`
-                  : vignetteResult.valid
-                    ? 'Валидна'
-                    : 'Няма валидна винетка'
-                : v.plate || 'Провери винетка'}
-          </span>
-        </div>
-        <button className={styles.goBtn} onClick={checkVignette} disabled={vignetteLoading}>
-          {vignetteLoading ? '…' : 'Провери'}
-        </button>
-      </div>
-
-      <div className={`${styles.goCard} ${delictResult ? (delictResult.hasDelicts ? styles.goInvalid : styles.goValid) : ''}`}>
-        <div className={styles.goInfo}>
-          <span className={styles.goTitle}>Глоби (bgtoll)</span>
-          <span className={styles.goSub}>
-            {delictLoading
-              ? 'Проверява...'
-              : delictResult
-                ? delictResult.message
-                : v.plate || 'Провери за глоби'}
-          </span>
-        </div>
-        <button className={styles.goBtn} onClick={() => setShowEgnModal(true)} disabled={delictLoading}>
-          {delictLoading ? '…' : 'Провери'}
-        </button>
-      </div>
+      </button>
 
       <div className="section-title">Последна активност</div>
       {recent.length === 0 ? (
