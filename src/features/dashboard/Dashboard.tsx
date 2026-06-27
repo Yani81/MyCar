@@ -146,7 +146,18 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
       onClose={() => setShowEgnModal(false)}
       color="#c2185b"
       footer={
-        <button className="btn-primary" onClick={checkDelict} disabled={!egnInput.trim()}>
+        <button
+          style={{
+            flex: 1,
+            padding: 15,
+            borderRadius: 14,
+            background: egnInput.trim() ? '#c2185b' : 'var(--surface-3)',
+            color: egnInput.trim() ? '#fff' : 'var(--faint)',
+            fontWeight: 700,
+          }}
+          onClick={checkDelict}
+          disabled={!egnInput.trim()}
+        >
           Провери
         </button>
       }
@@ -163,7 +174,6 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
         value={egnInput}
         onChange={(e) => setEgnInput(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && checkDelict()}
-        autoFocus
       />
     </Modal>
   )
