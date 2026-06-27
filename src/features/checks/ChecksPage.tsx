@@ -11,6 +11,8 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
   const v = useActiveVehicle()
   const vehicleChecks = useStore((s) => s.vehicleChecks)
   const saveCheck = useStore((s) => s.saveCheck)
+  const katCredentials = useStore((s) => s.katCredentials)
+  const setKatCredentials = useStore((s) => s.setKatCredentials)
 
   const [goLoading, setGoLoading] = useState(false)
   const [gtpLoading, setGtpLoading] = useState(false)
@@ -24,11 +26,30 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
   const [showKatModal, setShowKatModal] = useState(false)
   const [katEgn, setKatEgn] = useState('')
   const [katLicense, setKatLicense] = useState('')
+  const [saveKat, setSaveKat] = useState(false)
 
   if (!v) return null
 
   const checks = vehicleChecks[v.id] ?? {}
   const today = new Date().toISOString().slice(0, 10)
+
+  const openKatModal = () => {
+    setKatEgn(katCredentials?.egn ?? '')
+    setKatLicense(katCredentials?.license ?? '')
+    setSaveKat(katCredentials !== null)
+    setShowKatModal(true)
+  }
+
+  const handleKatToggle = (on: boolean) => {
+    setSaveKat(on)
+    if (!on) setKatCredentials(null)
+  }
+
+  const closeKatModal = () => {
+    setShowKatModal(false)
+    setKatEgn('')
+    setKatLicense('')
+  }
 
   const checkGO = async () => {
     setGoLoading(true)
@@ -95,9 +116,8 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
     if (!katEgn.trim() || !katLicense.trim()) return
     const egnVal = katEgn.trim()
     const licVal = katLicense.trim()
-    setShowKatModal(false)
-    setKatEgn('')
-    setKatLicense('')
+    if (saveKat) setKatCredentials({ egn: egnVal, license: licVal })
+    closeKatModal()
     setKatLoading(true)
     try {
       const { data, error } = await supabase.functions.invoke('check-kat', {
@@ -155,7 +175,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
       title: 'Глоби КАТ (МВР)',
       color: '#1976d2',
       loading: katLoading,
-      onCheck: () => setShowKatModal(true),
+      onCheck: openKatModal,
       formatSub: (r: typeof checks.kat) =>
         r ? r.message : 'Натисни Провери',
     },
@@ -242,7 +262,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
       <Modal
         open={showKatModal}
         title="Провери глоби КАТ"
-        onClose={() => { setShowKatModal(false); setKatEgn(''); setKatLicense('') }}
+        onClose={closeKatModal}
         color="#1976d2"
         footer={
           <button
@@ -262,7 +282,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
         }
       >
         <p style={{ marginBottom: 12, color: 'var(--text-2)', fontSize: 14 }}>
-          Въведи ЕГН и номер на СУМПС. Данните не се записват в приложението.
+          Въведи ЕГН и номер на СУМПС. Данните не се записват в облака.
         </p>
         <input
           className={inputClass}
@@ -281,6 +301,17 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
           onChange={(e) => setKatLicense(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && checkKAT()}
         />
+        <div className={styles.saveRow}>
+          <span>Запази на устройството</span>
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={saveKat}
+              onChange={(e) => handleKatToggle(e.target.checked)}
+            />
+            <span className={styles.toggleSlider} />
+          </label>
+        </div>
       </Modal>
     </div>
   )

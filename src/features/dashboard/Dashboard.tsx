@@ -120,7 +120,7 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
                     {r
                       ? key === 'delict' || key === 'kat'
                         ? (r.valid
-                            ? key === 'delict' ? `Няма до ${dateShort(r.checkedAt)}` : 'Няма'
+                            ? `Няма до ${dateShort(r.checkedAt)}`
                             : key === 'delict' ? 'Има глоби' : 'Има задължения')
                         : (r.validUntil ? `До ${r.validUntil}` : (r.valid ? 'ОК' : 'Невалидно'))
                       : '—'}

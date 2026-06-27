@@ -62,6 +62,9 @@ interface State {
 
   vehicleChecks: Record<string, VehicleChecks>
   saveCheck: (vehicleId: string, type: keyof VehicleChecks, result: VehicleCheckResult) => void
+
+  katCredentials: { egn: string; license: string } | null
+  setKatCredentials: (creds: { egn: string; license: string } | null) => void
 }
 
 const defaultVehicle = (): Vehicle => ({
@@ -166,6 +169,9 @@ export const useStore = create<State>()(
               [vehicleId]: { ...s.vehicleChecks[vehicleId], [type]: result },
             },
           })),
+
+        katCredentials: null,
+        setKatCredentials: (creds) => set({ katCredentials: creds }),
       }
     },
     {
