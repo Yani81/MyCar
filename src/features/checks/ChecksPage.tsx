@@ -312,6 +312,10 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
             <span className={styles.toggleSlider} />
           </label>
         </div>
+        <div className={styles.infoBox}>
+          Данните, които изискваме, са необходими от системата на МВР. Твоите данни НЕ се записват в нашата база от данни.{' '}
+          <span style={{ wordBreak: 'break-all' }}>https://e-uslugi.mvr.bg/services/kat-obligations</span>
+        </div>
       </Modal>
     </div>
   )
