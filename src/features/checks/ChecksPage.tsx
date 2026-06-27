@@ -302,7 +302,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
           onKeyDown={(e) => e.key === 'Enter' && checkKAT()}
         />
         <div className={styles.saveRow}>
-          <span>Запази на устройството</span>
+          <span>Запази данните на твоето устройство за следваща проверка</span>
           <label className={styles.toggle}>
             <input
               type="checkbox"
