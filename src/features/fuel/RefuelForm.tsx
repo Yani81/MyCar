@@ -2,7 +2,7 @@ import { useState, useRef, useMemo } from 'react'
 import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, selectClass, Toggle } from '../../components/ui/Field'
 import { useStore } from '../../store/useStore'
-import { todayISO, todayTimeISO, km, toNumStr } from '../../lib/format'
+import { todayISO, km, toNumStr } from '../../lib/format'
 import { FUEL_LABELS, type Refuel, type FuelType } from '../../types'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
@@ -58,7 +58,6 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
 
   const fuels = vehicle?.fuels ?? ['petrol']
   const [date, setDate] = useState((edit?.date ?? todayISO()).slice(0, 10))
-  const [time, setTime] = useState(edit?.date && edit.date.length > 10 ? edit.date.slice(11, 16) : todayTimeISO())
   const [fuelType, setFuelType] = useState<FuelType>(edit?.fuelType ?? fuels[0])
   const [odometer, setOdometer] = useState(edit ? String(edit.odometer) : '')
   const [liters, setLiters] = useState(edit ? String(edit.liters) : '')
@@ -130,7 +129,7 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
     if (!valid) return
     const payload = {
       vehicleId,
-      date: date + (time ? 'T' + time : ''),
+      date,
       fuelType,
       odometer: Number(odometer),
       liters: Number(liters),
@@ -160,13 +159,10 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
         <Field label="Дата">
           <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
-        <Field label="Час">
-          <input className={inputClass} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+        <Field label="Километраж" hint={lastOdo ? `Последно: ${km(lastOdo)}` : undefined}>
+          <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
         </Field>
       </Row>
-      <Field label="Километраж" hint={lastOdo ? `Последно: ${km(lastOdo)}` : undefined}>
-        <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
-      </Field>
       {fuels.length > 1 && (
         <Field label="Гориво">
           <select className={selectClass} value={fuelType} onChange={(e) => setFuelType(e.target.value as FuelType)}>
