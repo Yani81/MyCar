@@ -26,9 +26,7 @@ export function Modal({ open, title, onClose, children, footer, color }: Props) 
   return (
     <div className={styles.backdrop} onClick={onClose}>
       <div className={styles.sheet} onClick={(e) => e.stopPropagation()}>
-        {!color && <div className={styles.grip} />}
-        <div className={styles.head} style={color ? { background: color, color: '#fff', margin: '0 -18px 16px', padding: '8px 18px 14px', borderRadius: '24px 24px 0 0', flexDirection: 'column', alignItems: 'stretch' } : undefined}>
-          {color && <div className={styles.grip} style={{ background: 'rgba(255,255,255,0.45)', margin: '4px auto 10px' }} />}
+        <div className={styles.head} style={color ? { background: color, color: '#fff', margin: '0 -18px 16px', padding: '14px 18px 14px', borderRadius: '24px 24px 0 0', flexDirection: 'column', alignItems: 'stretch' } : undefined}>
           {color ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h2>{title}</h2>

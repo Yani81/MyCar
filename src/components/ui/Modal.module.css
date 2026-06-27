@@ -19,6 +19,7 @@
   padding: 8px 18px calc(20px + env(safe-area-inset-bottom));
   max-height: 92dvh;
   overflow-y: auto;
+  overscroll-behavior: none;
   animation: slideUp 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .grip {
