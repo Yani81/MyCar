@@ -3,7 +3,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, selectClass, textareaClass, Toggle, Segmented, CheckGroup } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore } from '../../store/useStore'
-import { todayISO, todayTimeISO, todayDateISO, toNumStr } from '../../lib/format'
+import { todayISO, todayDateISO, toNumStr } from '../../lib/format'
 import { EXPENSE_CATEGORIES, type Expense, type ExpenseKind, type ReminderBasis } from '../../types'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
 import styles from './ExpenseForm.module.css'
@@ -78,11 +78,9 @@ export function ExpenseForm({
   const cats = EXPENSE_CATEGORIES.filter((c) => c.kind === kind)
 
   const [date, setDate] = useState((edit?.date ?? todayISO()).slice(0, 10))
-  const [time, setTime] = useState(edit?.date && edit.date.length > 10 ? edit.date.slice(11, 16) : todayTimeISO())
   const [categoryId, setCategoryId] = useState(
     edit ? EXPENSE_CATEGORIES.find((c) => c.label === edit.category)?.id ?? '' : ''
   )
-  const [title, setTitle] = useState(edit?.title ?? '')
   const [cost, setCost] = useState(edit ? String(edit.cost) : '')
   const [odometer, setOdometer] = useState(edit?.odometer ? String(edit.odometer) : '')
   const [place, setPlace] = useState(edit?.place ?? '')
@@ -175,10 +173,10 @@ export function ExpenseForm({
 
     const payload = {
       vehicleId,
-      date: mode === 'service' ? date : date + (time ? 'T' + time : ''),
+      date: date,
       kind: cat.kind,
       category: cat.label,
-      title: mode === 'service' ? undefined : (title.trim() || undefined),
+      title: undefined,
       cost: isInsurance
         ? installments.reduce((s, r) => s + (r.paid ? parseFloat(toNumStr(r.amount)) || 0 : 0), 0)
         : Number(cost),
@@ -428,7 +426,23 @@ export function ExpenseForm({
         </>
       ) : (
         <>
-          {/* Expense mode — без промяна */}
+          {/* 1. Дата + Километраж */}
+          {!isInsurance ? (
+            <Row>
+              <Field label="Дата">
+                <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </Field>
+              <Field label="Километраж (по избор)">
+                <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
+              </Field>
+            </Row>
+          ) : (
+            <Field label="Дата">
+              <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </Field>
+          )}
+
+          {/* 2. Категория */}
           <Field label="Категория">
             <select className={selectClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
               <option value="">— изберете —</option>
@@ -438,6 +452,14 @@ export function ExpenseForm({
             </select>
           </Field>
 
+          {/* 3. Сума (не за застраховка) */}
+          {!isInsurance && (
+            <Field label="Сума (€)">
+              <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(toNumStr(e.target.value))} placeholder="0.00" />
+            </Field>
+          )}
+
+          {/* Insurance specific */}
           {isInsurance && (
             <>
               <Row>
@@ -506,34 +528,9 @@ export function ExpenseForm({
             </>
           )}
 
-          {!isInsurance && (
-            <Row>
-              <Field label="Сума (€)">
-                <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(toNumStr(e.target.value))} placeholder="0.00" />
-              </Field>
-              <Field label="Километраж (по избор)">
-                <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
-              </Field>
-            </Row>
-          )}
-
-          {!isInsurance && (
-            <Field label="Описание (по избор)">
-              <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="" />
-            </Field>
-          )}
-          <Row>
-            <Field label="Дата">
-              <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </Field>
-            <Field label="Час">
-              <input className={inputClass} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-            </Field>
-          </Row>
           <Field label="Място (по избор)">
             <input className={inputClass} value={place} onChange={(e) => setPlace(e.target.value)} />
           </Field>
-
           <Field label="Бележка (по избор)">
             <textarea className={textareaClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
