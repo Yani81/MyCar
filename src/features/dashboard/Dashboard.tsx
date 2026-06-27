@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import styles from './Dashboard.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { useUI, type FormOpen } from '../../store/useUI'
@@ -7,6 +7,9 @@ import { money, km, num, dateShort } from '../../lib/format'
 import type { Tab } from '../../components/Layout/BottomNav'
 import { FUEL_LABELS } from '../../types'
 import { IconFuel, IconWrench, IconIncome, IconRoute, IconBell } from '../../components/Layout/icons'
+import { supabase } from '../../lib/supabase'
+
+type GoResult = { valid: boolean; message: string } | null
 
 export function Dashboard({ go }: { go: (t: Tab) => void }) {
   const v = useActiveVehicle()
@@ -51,6 +54,25 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
     return { stats, nextRem, recent, lastRefuel, lastKm }
   }, [v, refuels, expenses, incomes, trips, readings, reminders])
 
+  const [goResult, setGoResult] = useState<GoResult>(null)
+  const [goLoading, setGoLoading] = useState(false)
+
+  const checkGO = async () => {
+    setGoLoading(true)
+    setGoResult(null)
+    try {
+      const { data, error } = await supabase.functions.invoke('check-go', {
+        body: { plate: v?.plate ?? '' },
+      })
+      if (error) throw error
+      setGoResult(data as GoResult)
+    } catch {
+      setGoResult({ valid: false, message: 'Грешка при проверката. Опитай отново.' })
+    } finally {
+      setGoLoading(false)
+    }
+  }
+
   if (!v || !d) return null
   const { stats, nextRem, recent } = d
 
@@ -92,6 +114,22 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
           </div>
         </button>
       )}
+
+      <div className={`${styles.goCard} ${goResult ? (goResult.valid ? styles.goValid : styles.goInvalid) : ''}`}>
+        <div className={styles.goInfo}>
+          <span className={styles.goTitle}>Гражданска отговорност</span>
+          <span className={styles.goSub}>
+            {goLoading
+              ? 'Проверява...'
+              : goResult
+                ? goResult.message.slice(0, 100)
+                : v.plate || 'Провери застраховката'}
+          </span>
+        </div>
+        <button className={styles.goBtn} onClick={checkGO} disabled={goLoading}>
+          {goLoading ? '…' : 'Провери'}
+        </button>
+      </div>
 
       <div className="section-title">Последна активност</div>
       {recent.length === 0 ? (

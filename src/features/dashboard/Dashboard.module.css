@@ -168,6 +168,56 @@
 .ok {
   color: var(--green);
 }
+.goCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.goValid {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.goInvalid {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+.goInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.goTitle {
+  font-weight: 600;
+  font-size: 14px;
+}
+.goSub {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.goBtn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  background: var(--brand);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  transition: opacity 0.15s;
+}
+.goBtn:disabled {
+  opacity: 0.6;
+}
 .activity {
   display: flex;
   flex-direction: column;
