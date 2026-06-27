@@ -8,10 +8,13 @@ import type { Tab } from '../../components/Layout/BottomNav'
 import { FUEL_LABELS } from '../../types'
 import { IconFuel, IconWrench, IconIncome, IconRoute, IconBell } from '../../components/Layout/icons'
 import { supabase } from '../../lib/supabase'
+import { Modal } from '../../components/ui/Modal'
+import { inputClass } from '../../components/ui/Field'
 
 type GoResult = { valid: boolean; message: string; validUntil?: string } | null
 type GtpResult = { valid: boolean; message: string; validUntil?: string } | null
 type VignetteResult = { valid: boolean; message: string; validUntil?: string } | null
+type DelictResult = { hasDelicts: boolean; count: number; message: string } | null
 
 export function Dashboard({ go }: { go: (t: Tab) => void }) {
   const v = useActiveVehicle()
@@ -62,6 +65,10 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
   const [gtpLoading, setGtpLoading] = useState(false)
   const [vignetteResult, setVignetteResult] = useState<VignetteResult>(null)
   const [vignetteLoading, setVignetteLoading] = useState(false)
+  const [delictResult, setDelictResult] = useState<DelictResult>(null)
+  const [delictLoading, setDelictLoading] = useState(false)
+  const [showEgnModal, setShowEgnModal] = useState(false)
+  const [egnInput, setEgnInput] = useState('')
 
   const checkGTP = async () => {
     setGtpLoading(true)
@@ -76,6 +83,25 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
       setGtpResult({ valid: false, message: 'Грешка при проверката. Опитай отново.' })
     } finally {
       setGtpLoading(false)
+    }
+  }
+
+  const checkDelict = async () => {
+    if (!egnInput.trim()) return
+    setShowEgnModal(false)
+    setDelictLoading(true)
+    setDelictResult(null)
+    try {
+      const { data, error } = await supabase.functions.invoke('check-delict', {
+        body: { plate: v?.plate ?? '', egn: egnInput.trim(), country: 'BG' },
+      })
+      if (error) throw error
+      setDelictResult(data as DelictResult)
+    } catch {
+      setDelictResult({ hasDelicts: false, count: 0, message: 'Грешка при проверката. Опитай отново.' })
+    } finally {
+      setDelictLoading(false)
+      setEgnInput('')
     }
   }
 
@@ -112,10 +138,40 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
   }
 
   if (!v || !d) return null
+
+  const egnModal = (
+    <Modal
+      open={showEgnModal}
+      title="Провери глоби"
+      onClose={() => setShowEgnModal(false)}
+      color="#c2185b"
+      footer={
+        <button className="btn-primary" onClick={checkDelict} disabled={!egnInput.trim()}>
+          Провери
+        </button>
+      }
+    >
+      <p style={{ marginBottom: 12, color: 'var(--text-2)', fontSize: 14 }}>
+        Въведи ЕГН или ЕИК за проверка на <strong>{v.plate}</strong>.
+        ЕГН не се записва в приложението.
+      </p>
+      <input
+        className={inputClass}
+        type="text"
+        inputMode="numeric"
+        placeholder="ЕГН или ЕИК"
+        value={egnInput}
+        onChange={(e) => setEgnInput(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && checkDelict()}
+        autoFocus
+      />
+    </Modal>
+  )
   const { stats, nextRem, recent } = d
 
   return (
     <div className={styles.wrap}>
+      {egnModal}
       <div className={styles.hero}>
         <div className={styles.heroTop}>
           <span>Среден разход{v.fuels.length > 1 ? ` · ${FUEL_LABELS[v.fuels[0]]}+` : ''}</span>
@@ -210,6 +266,22 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
         </div>
         <button className={styles.goBtn} onClick={checkVignette} disabled={vignetteLoading}>
           {vignetteLoading ? '…' : 'Провери'}
+        </button>
+      </div>
+
+      <div className={`${styles.goCard} ${delictResult ? (delictResult.hasDelicts ? styles.goInvalid : styles.goValid) : ''}`}>
+        <div className={styles.goInfo}>
+          <span className={styles.goTitle}>Глоби (bgtoll)</span>
+          <span className={styles.goSub}>
+            {delictLoading
+              ? 'Проверява...'
+              : delictResult
+                ? delictResult.message
+                : v.plate || 'Провери за глоби'}
+          </span>
+        </div>
+        <button className={styles.goBtn} onClick={() => setShowEgnModal(true)} disabled={delictLoading}>
+          {delictLoading ? '…' : 'Провери'}
         </button>
       </div>
 
