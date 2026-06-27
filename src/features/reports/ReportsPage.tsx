@@ -206,7 +206,7 @@ function Card({ label, value, unit, perDay, amount, dist, accent, color, Icon }:
 }) {
   const c = color ?? 'var(--brand)'
   return (
-    <div className={`${styles.card} ${accent ? styles.cardAccent : ''}`}>
+    <div className={styles.card}>
       <div className={styles.cardHead}>
         {Icon && <span className={styles.cardIcon} style={{ background: c }}><Icon width={18} height={18} color="#fff" /></span>}
         <span className={styles.cardLabel}>{label}</span>
