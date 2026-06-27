@@ -10,6 +10,7 @@ import { IconFuel, IconWrench, IconIncome, IconRoute, IconBell } from '../../com
 import { supabase } from '../../lib/supabase'
 
 type GoResult = { valid: boolean; message: string; validUntil?: string } | null
+type GtpResult = { valid: boolean; message: string; validUntil?: string } | null
 
 export function Dashboard({ go }: { go: (t: Tab) => void }) {
   const v = useActiveVehicle()
@@ -56,6 +57,24 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
 
   const [goResult, setGoResult] = useState<GoResult>(null)
   const [goLoading, setGoLoading] = useState(false)
+  const [gtpResult, setGtpResult] = useState<GtpResult>(null)
+  const [gtpLoading, setGtpLoading] = useState(false)
+
+  const checkGTP = async () => {
+    setGtpLoading(true)
+    setGtpResult(null)
+    try {
+      const { data, error } = await supabase.functions.invoke('check-gtp', {
+        body: { plate: v?.plate ?? '' },
+      })
+      if (error) throw error
+      setGtpResult(data as GtpResult)
+    } catch {
+      setGtpResult({ valid: false, message: 'Грешка при проверката. Опитай отново.' })
+    } finally {
+      setGtpLoading(false)
+    }
+  }
 
   const checkGO = async () => {
     setGoLoading(true)
@@ -132,6 +151,26 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
         </div>
         <button className={styles.goBtn} onClick={checkGO} disabled={goLoading}>
           {goLoading ? '…' : 'Провери'}
+        </button>
+      </div>
+
+      <div className={`${styles.goCard} ${gtpResult ? (gtpResult.valid ? styles.goValid : styles.goInvalid) : ''}`}>
+        <div className={styles.goInfo}>
+          <span className={styles.goTitle}>Технически преглед</span>
+          <span className={styles.goSub}>
+            {gtpLoading
+              ? 'Проверява...'
+              : gtpResult
+                ? gtpResult.valid && gtpResult.validUntil
+                  ? `Валиден до ${gtpResult.validUntil}`
+                  : gtpResult.valid
+                    ? 'Валиден'
+                    : 'Няма валиден ГТП'
+                : v.plate || 'Провери ГТП'}
+          </span>
+        </div>
+        <button className={styles.goBtn} onClick={checkGTP} disabled={gtpLoading}>
+          {gtpLoading ? '…' : 'Провери'}
         </button>
       </div>
 
