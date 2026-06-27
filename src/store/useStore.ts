@@ -65,6 +65,9 @@ interface State {
 
   katCredentials: { egn: string; license: string } | null
   setKatCredentials: (creds: { egn: string; license: string } | null) => void
+
+  serviceShops: string[]
+  addServiceShop: (shop: string) => void
 }
 
 const defaultVehicle = (): Vehicle => ({
@@ -172,6 +175,12 @@ export const useStore = create<State>()(
 
         katCredentials: null,
         setKatCredentials: (creds) => set({ katCredentials: creds }),
+
+        serviceShops: [],
+        addServiceShop: (shop) =>
+          set((s) => ({
+            serviceShops: s.serviceShops.includes(shop) ? s.serviceShops : [...s.serviceShops, shop],
+          })),
       }
     },
     {

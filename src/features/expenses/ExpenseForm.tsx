@@ -71,6 +71,8 @@ export function ExpenseForm({
   const addReminder = useStore((s) => s.addReminder)
   const removeReminder = useStore((s) => s.removeReminder)
   const reminders = useStore((s) => s.reminders)
+  const serviceShops = useStore((s) => s.serviceShops)
+  const addServiceShop = useStore((s) => s.addServiceShop)
 
   const kind: ExpenseKind = edit?.kind ?? mode
   const cats = EXPENSE_CATEGORIES.filter((c) => c.kind === kind)
@@ -88,6 +90,16 @@ export function ExpenseForm({
   const [receiptImage, setReceiptImage] = useState(edit?.receiptImage ?? '')
   const [showLightbox, setShowLightbox] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Service shop dropdown
+  const initShopPick = () => {
+    if (!edit?.place) return ''
+    return serviceShops.includes(edit.place) ? edit.place : '__new__'
+  }
+  const [shopPick, setShopPick] = useState(initShopPick)
+  const [shopText, setShopText] = useState(
+    edit?.place && !serviceShops.includes(edit.place) ? edit.place : ''
+  )
 
   // Insurance specific
   const [insuranceType, setInsuranceType] = useState(edit?.insuranceType ?? INSURANCE_TYPES[0])
@@ -152,17 +164,26 @@ export function ExpenseForm({
 
   const submit = () => {
     if (!cat || !valid) return
+
+    const shopValue = mode === 'service'
+      ? (shopPick === '__new__' ? shopText.trim() : shopPick)
+      : place.trim()
+
+    if (mode === 'service' && shopPick === '__new__' && shopText.trim()) {
+      addServiceShop(shopText.trim())
+    }
+
     const payload = {
       vehicleId,
-      date: date + (time ? 'T' + time : ''),
+      date: mode === 'service' ? date : date + (time ? 'T' + time : ''),
       kind: cat.kind,
       category: cat.label,
-      title: title.trim() || undefined,
+      title: mode === 'service' ? undefined : (title.trim() || undefined),
       cost: isInsurance
         ? installments.reduce((s, r) => s + (r.paid ? parseFloat(toNumStr(r.amount)) || 0 : 0), 0)
         : Number(cost),
       odometer: Number(odometer) || undefined,
-      place: place.trim() || undefined,
+      place: shopValue || undefined,
       notes: notes.trim() || undefined,
       receiptImage: receiptImage || undefined,
       ...(isInsurance && {
@@ -232,182 +253,8 @@ export function ExpenseForm({
   const title0 = kind === 'service' ? 'услуга / сервиз' : 'разход'
   const formColor = kind === 'service' ? '#7a5c4a' : '#ec5b53'
 
-  return (
-    <Modal
-      open
-      title={edit ? `Редакция на ${title0}` : `Нов ${title0}`}
-      color={formColor}
-      onClose={onClose}
-      footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeExpense(edit.id); onClose() } : undefined} deleteMsg="Изтриване на записа?" color={formColor} />}
-    >
-      <Field label={kind === 'service' ? 'Вид услуга' : 'Категория'}>
-        <select className={selectClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-          <option value="">— изберете —</option>
-          {cats.map((c) => (
-            <option key={c.id} value={c.id}>{c.label}</option>
-          ))}
-        </select>
-      </Field>
-
-      {isInsurance && (
-        <>
-          <Row>
-            <Field label="Вид застраховка">
-              <select className={selectClass} value={insuranceType} onChange={(e) => setInsuranceType(e.target.value)}>
-                {INSURANCE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </Field>
-            <Field label="Застрахователна компания">
-              {insurerPick !== '__new__' ? (
-                <select className={selectClass} value={insurerPick} onChange={(e) => setInsurerPick(e.target.value)}>
-                  <option value=""></option>
-                  {DEFAULT_INSURERS.map((c) => <option key={c} value={c}>{c}</option>)}
-                  <option value="__new__">+ Добави друга...</option>
-                </select>
-              ) : (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input className={inputClass} style={{ flex: 1 }} value={insurerText}
-                    onChange={(e) => setInsurerText(e.target.value)} placeholder="напр. Дженерали" autoFocus />
-                  <button type="button" onClick={() => { setInsurerPick(''); setInsurerText('') }}
-                    style={{ fontSize: 18, color: 'var(--muted)', padding: '0 4px' }}>✕</button>
-                </div>
-              )}
-            </Field>
-          </Row>
-          <Row>
-            <Field label="Брой вноски">
-              <select className={selectClass} value={insuranceInstallments}
-                onChange={(e) => handleInstallmentsChange(Number(e.target.value))}>
-                {INSTALLMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </Field>
-            <Field label="Километраж (по избор)">
-              <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
-            </Field>
-          </Row>
-          {installments.map((inst, i) => (
-            <Row key={i} cols="1fr 1fr auto">
-              <Field label={installments.length === 1 ? 'Сума (€)' : `Вноска ${i + 1} (€)`}>
-                <input
-                  className={inputClass}
-                  inputMode="decimal"
-                  value={inst.amount}
-                  onChange={(e) => { const next = [...installments]; next[i] = { ...next[i], amount: toNumStr(e.target.value) }; setInstallments(next) }}
-                  placeholder="0.00"
-                />
-              </Field>
-              <Field label="Изтича на">
-                <input
-                  className={inputClass}
-                  type="date"
-                  value={inst.dueDate}
-                  onChange={(e) => { const next = [...installments]; next[i] = { ...next[i], dueDate: e.target.value }; setInstallments(next) }}
-                />
-              </Field>
-              <div className={styles.paidCell}>
-                <span className={styles.paidLabel}>Платено</span>
-                <Toggle
-                  checked={inst.paid}
-                  onChange={(v) => { const next = [...installments]; next[i] = { ...next[i], paid: v }; setInstallments(next) }}
-                  label=""
-                />
-              </div>
-            </Row>
-          ))}
-        </>
-      )}
-
-      {!isInsurance && (
-        <Row>
-          <Field label="Сума (€)">
-            <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(toNumStr(e.target.value))} placeholder="0.00" />
-          </Field>
-          <Field label="Километраж (по избор)">
-            <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
-          </Field>
-        </Row>
-      )}
-
-      {!isInsurance && (
-        <Field label="Описание (по избор)">
-          <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="" />
-        </Field>
-      )}
-      <Row>
-        <Field label="Дата">
-          <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </Field>
-        <Field label="Час">
-          <input className={inputClass} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-        </Field>
-      </Row>
-      <Field label="Място (по избор)">
-        <input className={inputClass} value={place} onChange={(e) => setPlace(e.target.value)} />
-      </Field>
-
-      {isOil && (
-        <>
-          <Field label="Вид масло (по избор)">
-            <input
-              className={inputClass}
-              value={oilType}
-              onChange={(e) => setOilType(e.target.value)}
-              placeholder="напр. 5W-40 синтетично"
-            />
-          </Field>
-          <Field label="Сменени филтри">
-            <CheckGroup
-              items={[
-                { label: 'Маслен филтър', checked: oilFilter, onChange: setOilFilter },
-                { label: 'Горивен филтър', checked: fuelFilter, onChange: setFuelFilter },
-                { label: 'Въздушен филтър', checked: airFilter, onChange: setAirFilter },
-              ]}
-            />
-          </Field>
-          {!edit && (
-            <>
-              <Toggle checked={enableReminder} onChange={setEnableReminder} label="Добави напомняне" />
-              {enableReminder && (
-                <>
-                  <Field label="Напомни по">
-                    <Segmented
-                      value={reminderBasis}
-                      onChange={setReminderBasis}
-                      options={[
-                        { value: 'date', label: 'Дата' },
-                        { value: 'odometer', label: 'Километраж' },
-                        { value: 'both', label: 'И двете' },
-                      ]}
-                    />
-                  </Field>
-                  {showReminderDate && (
-                    <Field label="Дата на следваща смяна">
-                      <input className={inputClass} type="date" value={reminderDate} onChange={(e) => setReminderDate(e.target.value)} />
-                    </Field>
-                  )}
-                  {showReminderOdo && (
-                    <Field label="Километраж на следваща смяна">
-                      <input className={inputClass} inputMode="numeric" value={reminderOdo} onChange={(e) => setReminderOdo(e.target.value)} placeholder="0" />
-                    </Field>
-                  )}
-                  <Row>
-                    <Field label="Повтаряй (месеци)" hint="по избор">
-                      <input className={inputClass} inputMode="numeric" value={reminderMonths} onChange={(e) => setReminderMonths(e.target.value)} placeholder="12" />
-                    </Field>
-                    <Field label="Повтаряй (км)" hint="по избор">
-                      <input className={inputClass} inputMode="numeric" value={reminderKm} onChange={(e) => setReminderKm(e.target.value)} placeholder="15000" />
-                    </Field>
-                  </Row>
-                </>
-              )}
-            </>
-          )}
-        </>
-      )}
-
-      <Field label="Бележка (по избор)">
-        <textarea className={textareaClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </Field>
+  const receiptSection = (
+    <>
       <input
         ref={fileInputRef}
         type="file"
@@ -439,6 +286,260 @@ export function ExpenseForm({
         )}
       </div>
       {showLightbox && <ImageLightbox src={receiptImage} onClose={() => setShowLightbox(false)} />}
+    </>
+  )
+
+  return (
+    <Modal
+      open
+      title={edit ? `Редакция на ${title0}` : `Нов ${title0}`}
+      color={formColor}
+      onClose={onClose}
+      footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeExpense(edit.id); onClose() } : undefined} deleteMsg="Изтриване на записа?" color={formColor} />}
+    >
+      {mode === 'service' ? (
+        <>
+          {/* 1. Дата + Километраж */}
+          <Row>
+            <Field label="Дата">
+              <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </Field>
+            <Field label="Километраж (по избор)">
+              <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
+            </Field>
+          </Row>
+
+          {/* 2. Вид услуга + Сума */}
+          <Row>
+            <Field label="Вид услуга">
+              <select className={selectClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+                <option value="">— изберете —</option>
+                {cats.map((c) => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Сума (€)">
+              <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(toNumStr(e.target.value))} placeholder="0.00" />
+            </Field>
+          </Row>
+
+          {/* 3-5. Oil-specific */}
+          {isOil && (
+            <>
+              <Field label="Вид масло (по избор)">
+                <input
+                  className={inputClass}
+                  value={oilType}
+                  onChange={(e) => setOilType(e.target.value)}
+                  placeholder="напр. 5W-40 синтетично"
+                />
+              </Field>
+              <Field label="Сменени филтри">
+                <CheckGroup
+                  items={[
+                    { label: 'Маслен филтър', checked: oilFilter, onChange: setOilFilter },
+                    { label: 'Горивен филтър', checked: fuelFilter, onChange: setFuelFilter },
+                    { label: 'Въздушен филтър', checked: airFilter, onChange: setAirFilter },
+                  ]}
+                />
+              </Field>
+              {!edit && (
+                <>
+                  <Toggle checked={enableReminder} onChange={setEnableReminder} label="Добави напомняне" />
+                  {enableReminder && (
+                    <>
+                      <Field label="Напомни по">
+                        <Segmented
+                          value={reminderBasis}
+                          onChange={setReminderBasis}
+                          options={[
+                            { value: 'date', label: 'Дата' },
+                            { value: 'odometer', label: 'Километраж' },
+                            { value: 'both', label: 'И двете' },
+                          ]}
+                        />
+                      </Field>
+                      {showReminderDate && (
+                        <Field label="Дата на следваща смяна">
+                          <input className={inputClass} type="date" value={reminderDate} onChange={(e) => setReminderDate(e.target.value)} />
+                        </Field>
+                      )}
+                      {showReminderOdo && (
+                        <Field label="Километраж на следваща смяна">
+                          <input className={inputClass} inputMode="numeric" value={reminderOdo} onChange={(e) => setReminderOdo(e.target.value)} placeholder="0" />
+                        </Field>
+                      )}
+                      <Row>
+                        <Field label="Повтаряй (месеци)" hint="по избор">
+                          <input className={inputClass} inputMode="numeric" value={reminderMonths} onChange={(e) => setReminderMonths(e.target.value)} placeholder="12" />
+                        </Field>
+                        <Field label="Повтаряй (км)" hint="по избор">
+                          <input className={inputClass} inputMode="numeric" value={reminderKm} onChange={(e) => setReminderKm(e.target.value)} placeholder="15000" />
+                        </Field>
+                      </Row>
+                    </>
+                  )}
+                </>
+              )}
+            </>
+          )}
+
+          {/* 6. Сервиз */}
+          <Field label="Сервиз (по избор)">
+            {shopPick !== '__new__' ? (
+              <select
+                className={selectClass}
+                value={shopPick}
+                onChange={(e) => setShopPick(e.target.value)}
+              >
+                <option value="">— изберете или добавете —</option>
+                {serviceShops.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+                <option value="__new__">+ Добави нов сервиз...</option>
+              </select>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  className={inputClass}
+                  style={{ flex: 1 }}
+                  value={shopText}
+                  onChange={(e) => setShopText(e.target.value)}
+                  placeholder="напр. Автосервиз Иванов"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => { setShopPick(''); setShopText('') }}
+                  style={{ fontSize: 18, color: 'var(--muted)', padding: '0 4px' }}
+                >✕</button>
+              </div>
+            )}
+          </Field>
+
+          {/* 7. Бележка */}
+          <Field label="Бележка (по избор)">
+            <textarea className={textareaClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </Field>
+
+          {/* 8. Касова бележка */}
+          {receiptSection}
+        </>
+      ) : (
+        <>
+          {/* Expense mode — без промяна */}
+          <Field label="Категория">
+            <select className={selectClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+              <option value="">— изберете —</option>
+              {cats.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+          </Field>
+
+          {isInsurance && (
+            <>
+              <Row>
+                <Field label="Вид застраховка">
+                  <select className={selectClass} value={insuranceType} onChange={(e) => setInsuranceType(e.target.value)}>
+                    {INSURANCE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </Field>
+                <Field label="Застрахователна компания">
+                  {insurerPick !== '__new__' ? (
+                    <select className={selectClass} value={insurerPick} onChange={(e) => setInsurerPick(e.target.value)}>
+                      <option value=""></option>
+                      {DEFAULT_INSURERS.map((c) => <option key={c} value={c}>{c}</option>)}
+                      <option value="__new__">+ Добави друга...</option>
+                    </select>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input className={inputClass} style={{ flex: 1 }} value={insurerText}
+                        onChange={(e) => setInsurerText(e.target.value)} placeholder="напр. Дженерали" autoFocus />
+                      <button type="button" onClick={() => { setInsurerPick(''); setInsurerText('') }}
+                        style={{ fontSize: 18, color: 'var(--muted)', padding: '0 4px' }}>✕</button>
+                    </div>
+                  )}
+                </Field>
+              </Row>
+              <Row>
+                <Field label="Брой вноски">
+                  <select className={selectClass} value={insuranceInstallments}
+                    onChange={(e) => handleInstallmentsChange(Number(e.target.value))}>
+                    {INSTALLMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </Field>
+                <Field label="Километраж (по избор)">
+                  <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
+                </Field>
+              </Row>
+              {installments.map((inst, i) => (
+                <Row key={i} cols="1fr 1fr auto">
+                  <Field label={installments.length === 1 ? 'Сума (€)' : `Вноска ${i + 1} (€)`}>
+                    <input
+                      className={inputClass}
+                      inputMode="decimal"
+                      value={inst.amount}
+                      onChange={(e) => { const next = [...installments]; next[i] = { ...next[i], amount: toNumStr(e.target.value) }; setInstallments(next) }}
+                      placeholder="0.00"
+                    />
+                  </Field>
+                  <Field label="Изтича на">
+                    <input
+                      className={inputClass}
+                      type="date"
+                      value={inst.dueDate}
+                      onChange={(e) => { const next = [...installments]; next[i] = { ...next[i], dueDate: e.target.value }; setInstallments(next) }}
+                    />
+                  </Field>
+                  <div className={styles.paidCell}>
+                    <span className={styles.paidLabel}>Платено</span>
+                    <Toggle
+                      checked={inst.paid}
+                      onChange={(v) => { const next = [...installments]; next[i] = { ...next[i], paid: v }; setInstallments(next) }}
+                      label=""
+                    />
+                  </div>
+                </Row>
+              ))}
+            </>
+          )}
+
+          {!isInsurance && (
+            <Row>
+              <Field label="Сума (€)">
+                <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(toNumStr(e.target.value))} placeholder="0.00" />
+              </Field>
+              <Field label="Километраж (по избор)">
+                <input className={inputClass} inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="0" />
+              </Field>
+            </Row>
+          )}
+
+          {!isInsurance && (
+            <Field label="Описание (по избор)">
+              <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="" />
+            </Field>
+          )}
+          <Row>
+            <Field label="Дата">
+              <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </Field>
+            <Field label="Час">
+              <input className={inputClass} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            </Field>
+          </Row>
+          <Field label="Място (по избор)">
+            <input className={inputClass} value={place} onChange={(e) => setPlace(e.target.value)} />
+          </Field>
+
+          <Field label="Бележка (по избор)">
+            <textarea className={textareaClass} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </Field>
+          {receiptSection}
+        </>
+      )}
     </Modal>
   )
 }
