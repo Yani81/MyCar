@@ -114,11 +114,11 @@ function cookieString(map: Map<string, string>): string {
   return [...map.entries()].map(([k, v]) => `${k}=${v}`).join('; ')
 }
 
-function parseResult(html: string): { valid: boolean; message: string } | null {
+function parseResult(html: string): { valid: boolean; message: string; validUntil?: string } | null {
   const idx = html.search(/id=["']printresult["']/)
   if (idx < 0) return null
   const section = html.slice(idx, idx + 5000)
-  // The main result text is in the <h6> element
+
   const h6 = section.match(/<h6[^>]*>([\s\S]*?)<\/h6>/)
   if (!h6) {
     const text = section.slice(0, 500).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -126,7 +126,24 @@ function parseResult(html: string): { valid: boolean; message: string } | null {
   }
   const text = h6[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
   const valid = !text.toLowerCase().includes('няма валидна')
-  return { valid, message: text }
+
+  let validUntil: string | undefined
+  if (valid) {
+    const tableMatch = section.match(/<table[^>]*class=["'][^"']*success-results[^"']*["'][^>]*>([\s\S]*?)<\/table>/i)
+    if (tableMatch) {
+      const tableHtml = tableMatch[1]
+      const headers = [...tableHtml.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)]
+        .map((m) => m[1].replace(/<[^>]+>/g, '').trim().toLowerCase())
+      const endIdx = headers.findIndex((h) => h.includes('край') || h.includes('до') || h.includes('end'))
+      if (endIdx >= 0) {
+        const cells = [...tableHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)]
+          .map((m) => m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim())
+        if (cells[endIdx]) validUntil = cells[endIdx]
+      }
+    }
+  }
+
+  return { valid, message: text, validUntil }
 }
 
 const BASE_HEADERS = {

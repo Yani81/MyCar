@@ -9,7 +9,7 @@ import { FUEL_LABELS } from '../../types'
 import { IconFuel, IconWrench, IconIncome, IconRoute, IconBell } from '../../components/Layout/icons'
 import { supabase } from '../../lib/supabase'
 
-type GoResult = { valid: boolean; message: string } | null
+type GoResult = { valid: boolean; message: string; validUntil?: string } | null
 
 export function Dashboard({ go }: { go: (t: Tab) => void }) {
   const v = useActiveVehicle()
@@ -122,7 +122,11 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
             {goLoading
               ? 'Проверява...'
               : goResult
-                ? goResult.message.slice(0, 100)
+                ? goResult.valid && goResult.validUntil
+                  ? `Валидна до ${goResult.validUntil}`
+                  : goResult.valid
+                    ? 'Валидна'
+                    : 'Няма валидна застраховка'
                 : v.plate || 'Провери застраховката'}
           </span>
         </div>
