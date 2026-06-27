@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase'
 
 type GoResult = { valid: boolean; message: string; validUntil?: string } | null
 type GtpResult = { valid: boolean; message: string; validUntil?: string } | null
+type VignetteResult = { valid: boolean; message: string; validUntil?: string } | null
 
 export function Dashboard({ go }: { go: (t: Tab) => void }) {
   const v = useActiveVehicle()
@@ -59,6 +60,8 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
   const [goLoading, setGoLoading] = useState(false)
   const [gtpResult, setGtpResult] = useState<GtpResult>(null)
   const [gtpLoading, setGtpLoading] = useState(false)
+  const [vignetteResult, setVignetteResult] = useState<VignetteResult>(null)
+  const [vignetteLoading, setVignetteLoading] = useState(false)
 
   const checkGTP = async () => {
     setGtpLoading(true)
@@ -73,6 +76,22 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
       setGtpResult({ valid: false, message: 'Грешка при проверката. Опитай отново.' })
     } finally {
       setGtpLoading(false)
+    }
+  }
+
+  const checkVignette = async () => {
+    setVignetteLoading(true)
+    setVignetteResult(null)
+    try {
+      const { data, error } = await supabase.functions.invoke('check-vignette', {
+        body: { plate: v?.plate ?? '', country: 'BG' },
+      })
+      if (error) throw error
+      setVignetteResult(data as VignetteResult)
+    } catch {
+      setVignetteResult({ valid: false, message: 'Грешка при проверката. Опитай отново.' })
+    } finally {
+      setVignetteLoading(false)
     }
   }
 
@@ -171,6 +190,26 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
         </div>
         <button className={styles.goBtn} onClick={checkGTP} disabled={gtpLoading}>
           {gtpLoading ? '…' : 'Провери'}
+        </button>
+      </div>
+
+      <div className={`${styles.goCard} ${vignetteResult ? (vignetteResult.valid ? styles.goValid : styles.goInvalid) : ''}`}>
+        <div className={styles.goInfo}>
+          <span className={styles.goTitle}>Електронна винетка</span>
+          <span className={styles.goSub}>
+            {vignetteLoading
+              ? 'Проверява...'
+              : vignetteResult
+                ? vignetteResult.valid && vignetteResult.validUntil
+                  ? `Валидна до ${vignetteResult.validUntil}`
+                  : vignetteResult.valid
+                    ? 'Валидна'
+                    : 'Няма валидна винетка'
+                : v.plate || 'Провери винетка'}
+          </span>
+        </div>
+        <button className={styles.goBtn} onClick={checkVignette} disabled={vignetteLoading}>
+          {vignetteLoading ? '…' : 'Провери'}
         </button>
       </div>
 
