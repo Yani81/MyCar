@@ -106,10 +106,10 @@ ${y}`}class at extends Error{constructor({message:t,code:r,cause:n,name:i}){var 
         <tbody>${gD(r)}</tbody>
       </table>
     </section>`}function yD(e){const{vehicle:t,refuels:r,expenses:n,incomes:i,trips:a,readings:o}=e,s=new Date().toLocaleDateString("bg-BG"),l=`
-    ${Ns("Гориво",["Дата","Км","Гориво","Литри","Цена/л","Сума (лв)","Станция","Пълен"],r.map(h=>[h.date,h.odometer,Xt[h.fuelType],h.liters,h.pricePerLiter,h.total,h.station??"",h.fullTank?"Да":"Не"]))}
-    ${Ns("Разходи",["Дата","Км","Вид","Категория","Заглавие","Сума (лв)","Място"],n.map(h=>[h.date,h.odometer??"",h.kind==="service"?"Услуга":"Разход",h.category,h.title??"",h.cost,h.place??""]))}
-    ${Ns("Приходи",["Дата","Км","Категория","Сума (лв)"],i.map(h=>[h.date,h.odometer??"",h.category,h.amount]))}
-    ${Ns("Маршрути",["Дата","От","До","Начало км","Край км","Сума (лв)","Цел"],a.map(h=>[h.date,h.origin,h.destination,h.startOdometer,h.endOdometer,h.total,h.reason??""]))}
+    ${Ns("Гориво",["Дата","Км","Гориво","Литри","Цена/л","Сума (€)","Станция","Пълен"],r.map(h=>[h.date,h.odometer,Xt[h.fuelType],h.liters,h.pricePerLiter,h.total,h.station??"",h.fullTank?"Да":"Не"]))}
+    ${Ns("Разходи",["Дата","Км","Вид","Категория","Заглавие","Сума (€)","Място"],n.map(h=>[h.date,h.odometer??"",h.kind==="service"?"Услуга":"Разход",h.category,h.title??"",h.cost,h.place??""]))}
+    ${Ns("Приходи",["Дата","Км","Категория","Сума (€)"],i.map(h=>[h.date,h.odometer??"",h.category,h.amount]))}
+    ${Ns("Маршрути",["Дата","От","До","Начало км","Край км","Сума (€)","Цел"],a.map(h=>[h.date,h.origin,h.destination,h.startOdometer,h.endOdometer,h.total,h.reason??""]))}
     ${Ns("Километраж",["Дата","Км"],o.map(h=>[h.date,h.odometer]))}
   `,u=e.period?`${e.period.from} – ${e.period.to}`:"От началото",f=`<!DOCTYPE html>
 <html lang="bg">
