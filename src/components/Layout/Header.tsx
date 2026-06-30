@@ -6,6 +6,18 @@ import { Field, Row, inputClass, selectClass, Segmented } from '../ui/Field'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { useAuth } from '../../store/useAuth'
 import { FUEL_LABELS, type FuelType, type Vehicle } from '../../types'
+import { exportVehiclePDF, exportVehicleCSV } from '../../lib/export'
+
+type ModalView = 'none' | 'garage' | 'add' | 'edit'
+
+const PLATE_MAP: Record<string, string> = {
+  'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M',
+  'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'У': 'U', 'Х': 'X',
+}
+
+function normalizePlate(val: string): string {
+  return val.toUpperCase().replace(/./gu, (c) => PLATE_MAP[c] ?? c)
+}
 
 export function Header() {
   const vehicles = useStore((s) => s.vehicles)
@@ -17,29 +29,63 @@ export function Header() {
   const theme = useStore((s) => s.theme)
   const setTheme = useStore((s) => s.setTheme)
   const { user, signOut } = useAuth()
+  const refuels = useStore((s) => s.refuels)
+  const expenses = useStore((s) => s.expenses)
+  const incomes = useStore((s) => s.incomes)
+  const trips = useStore((s) => s.trips)
+  const readings = useStore((s) => s.readings)
+  const reminders = useStore((s) => s.reminders)
 
-  const [open, setOpen] = useState(false)
-  const [adding, setAdding] = useState(false)
+  const [modal, setModal] = useState<ModalView>('none')
+
+  // Add vehicle state
   const [name, setName] = useState('')
   const [plate, setPlate] = useState('')
   const [fuel1, setFuel1] = useState<FuelType>('petrol')
   const [fuel2, setFuel2] = useState<FuelType | 'none'>('none')
   const [odo, setOdo] = useState('')
 
+  // Edit vehicle state
   const [editing, setEditing] = useState<Vehicle | null>(null)
   const [editName, setEditName] = useState('')
   const [editPlate, setEditPlate] = useState('')
   const [editFuel1, setEditFuel1] = useState<FuelType>('petrol')
   const [editFuel2, setEditFuel2] = useState<FuelType | 'none'>('none')
 
+  // Export state
+  const [exportPeriod, setExportPeriod] = useState<'all' | 'custom'>('all')
+  const [exportFrom, setExportFrom] = useState('')
+  const [exportTo, setExportTo] = useState(new Date().toISOString().slice(0, 10))
+
+  const exportData = () => {
+    const inRange = (date: string) => {
+      if (exportPeriod === 'all') return true
+      if (exportFrom && date < exportFrom) return false
+      if (exportTo && date > exportTo) return false
+      return true
+    }
+    const forVehicle = <T extends { vehicleId: string; date: string }>(arr: T[]) =>
+      arr.filter((x) => x.vehicleId === active!.id && inRange(x.date))
+    return {
+      vehicle: active!,
+      refuels: forVehicle(refuels),
+      expenses: forVehicle(expenses),
+      incomes: forVehicle(incomes),
+      trips: forVehicle(trips),
+      readings: forVehicle(readings),
+      reminders: reminders.filter((r) => r.vehicleId === active!.id),
+      period: exportPeriod === 'custom' ? { from: exportFrom, to: exportTo } : undefined,
+    }
+  }
+
   const openEdit = (e: React.MouseEvent, v: Vehicle) => {
     e.stopPropagation()
-    setAdding(false)
     setEditing(v)
     setEditName(v.name)
     setEditPlate(v.plate ?? '')
     setEditFuel1(v.fuels[0])
     setEditFuel2(v.fuels[1] ?? 'none')
+    setModal('edit')
   }
 
   const saveEdit = () => {
@@ -47,31 +93,27 @@ export function Header() {
     const fuels: FuelType[] = editFuel2 !== 'none' && editFuel2 !== editFuel1 ? [editFuel1, editFuel2] : [editFuel1]
     updateVehicle(editing.id, { name: editName.trim(), plate: editPlate.trim() || undefined, fuels })
     setEditing(null)
+    setModal('garage')
   }
 
   const submitVehicle = () => {
     if (!name.trim()) return
     const fuels: FuelType[] = fuel2 !== 'none' && fuel2 !== fuel1 ? [fuel1, fuel2] : [fuel1]
-    addVehicle({
-      name: name.trim(),
-      plate: plate.trim() || undefined,
-      fuels,
-      initialOdometer: Number(odo) || 0,
-    })
-    setName('')
-    setPlate('')
-    setOdo('')
-    setFuel1('petrol')
-    setFuel2('none')
-    setAdding(false)
+    addVehicle({ name: name.trim(), plate: plate.trim() || undefined, fuels, initialOdometer: Number(odo) || 0 })
+    setName(''); setPlate(''); setOdo(''); setFuel1('petrol'); setFuel2('none')
+    setModal('garage')
   }
+
+  const fuelOptions = Object.entries(FUEL_LABELS).map(([k, l]) => (
+    <option key={k} value={k}>{l}</option>
+  ))
 
   if (!active) return null
 
   return (
     <>
       <header className={styles.header}>
-        <button className={styles.selector} onClick={() => setOpen(true)}>
+        <button className={styles.selector} onClick={() => setModal('garage')}>
           <span className={styles.iconWrap}>
             <IconCar width={20} height={20} />
           </span>
@@ -79,37 +121,31 @@ export function Header() {
             <span className={styles.vname}>{active.name}</span>
             <span className={styles.vsub}>
               {active.plate ? active.plate + ' · ' : ''}
-              {active.fuels.map((f) => FUEL_LABELS[f]).join(" + ")}
+              {active.fuels.map((f) => FUEL_LABELS[f]).join(' + ')}
             </span>
           </span>
           <IconChevron width={18} height={18} className={styles.chev} />
         </button>
       </header>
 
-      <Modal open={open} title="Гараж" onClose={() => { setOpen(false); setAdding(false); setEditing(null) }}>
+      {/* ── Гараж ── */}
+      <Modal open={modal === 'garage'} title="Гараж" onClose={() => setModal('none')}>
         <div className={styles.list}>
           {vehicles.map((v) => (
             <div
               key={v.id}
               className={`${styles.vrow} ${v.id === active.id ? styles.vactive : ''}`}
-              onClick={() => {
-                setActiveVehicle(v.id)
-                setOpen(false)
-              }}
+              onClick={() => { setActiveVehicle(v.id); setModal('none') }}
             >
               <div className={styles.vrowInfo}>
                 <div className={styles.vrowName}>{v.name}</div>
                 <div className={styles.vrowSub}>
                   {v.plate ? v.plate + ' · ' : ''}
-                  {v.fuels.map((f) => FUEL_LABELS[f]).join(" + ")}
+                  {v.fuels.map((f) => FUEL_LABELS[f]).join(' + ')}
                 </div>
               </div>
               <div className={styles.vrowActions}>
-                <button
-                  className={styles.edit}
-                  onClick={(e) => openEdit(e, v)}
-                  title="Редактирай"
-                >
+                <button className={styles.edit} onClick={(e) => openEdit(e, v)} title="Редактирай">
                   <IconPencil width={16} height={16} />
                 </button>
                 {vehicles.length > 1 && (
@@ -129,68 +165,36 @@ export function Header() {
           ))}
         </div>
 
-        {editing ? (
-          <div className={styles.addForm}>
-            <div className={styles.editTitle}>Редактиране: {editing.name}</div>
-            <Field label="Име">
-              <input className={inputClass} value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="напр. Golf 6" />
-            </Field>
-            <Field label="Рег. номер">
-              <input className={inputClass} value={editPlate} onChange={(e) => setEditPlate(e.target.value)} placeholder="CB 1234 AB" />
-            </Field>
-            <Field label="Гориво (резервоар 1)">
-              <select className={selectClass} value={editFuel1} onChange={(e) => setEditFuel1(e.target.value as FuelType)}>
-                {Object.entries(FUEL_LABELS).map(([k, l]) => (
-                  <option key={k} value={k}>{l}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Второ гориво (резервоар 2)" hint="за двугоривни коли, напр. газ">
-              <select className={selectClass} value={editFuel2} onChange={(e) => setEditFuel2(e.target.value as FuelType | 'none')}>
-                <option value="none">Няма</option>
-                {Object.entries(FUEL_LABELS).map(([k, l]) => (
-                  <option key={k} value={k}>{l}</option>
-                ))}
-              </select>
-            </Field>
-            <div className={styles.editButtons}>
-              <button className={styles.ghost} style={{ marginTop: 0 }} onClick={() => setEditing(null)}>Отказ</button>
-              <button className={styles.primary} onClick={saveEdit}>Запази</button>
-            </div>
-          </div>
-        ) : adding ? (
-          <div className={styles.addForm}>
-            <Field label="Име">
-              <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} placeholder="напр. Golf 6" />
-            </Field>
+        <button className={styles.ghost} onClick={() => setModal('add')}>+ Нов автомобил</button>
+
+        <div className={styles.exportBlock}>
+          <span className={styles.exportLabel}>Експорт на данни</span>
+          <Segmented
+            value={exportPeriod}
+            onChange={(v) => {
+              setExportPeriod(v as 'all' | 'custom')
+              if (v === 'custom' && !exportFrom) setExportFrom(active!.createdAt.slice(0, 10))
+            }}
+            options={[
+              { value: 'all', label: 'От началото' },
+              { value: 'custom', label: 'По дата' },
+            ]}
+          />
+          {exportPeriod === 'custom' && (
             <Row>
-              <Field label="Рег. номер">
-                <input className={inputClass} value={plate} onChange={(e) => setPlate(e.target.value)} placeholder="CB 1234 AB" />
+              <Field label="От">
+                <input className={inputClass} type="date" value={exportFrom} onChange={(e) => setExportFrom(e.target.value)} />
               </Field>
-              <Field label="Километраж">
-                <input className={inputClass} inputMode="numeric" value={odo} onChange={(e) => setOdo(e.target.value)} placeholder="0" />
+              <Field label="До">
+                <input className={inputClass} type="date" value={exportTo} onChange={(e) => setExportTo(e.target.value)} />
               </Field>
             </Row>
-            <Field label="Гориво (резервоар 1)">
-              <select className={selectClass} value={fuel1} onChange={(e) => setFuel1(e.target.value as FuelType)}>
-                {Object.entries(FUEL_LABELS).map(([k, l]) => (
-                  <option key={k} value={k}>{l}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Второ гориво (резервоар 2)" hint="за двугоривни коли, напр. газ">
-              <select className={selectClass} value={fuel2} onChange={(e) => setFuel2(e.target.value as FuelType | 'none')}>
-                <option value="none">Няма</option>
-                {Object.entries(FUEL_LABELS).map(([k, l]) => (
-                  <option key={k} value={k}>{l}</option>
-                ))}
-              </select>
-            </Field>
-            <button className={styles.primary} onClick={submitVehicle}>Добави автомобил</button>
+          )}
+          <div className={styles.exportButtons}>
+            <button className={styles.exportBtn} onClick={() => exportVehiclePDF(exportData())}>PDF</button>
+            <button className={styles.exportBtn} onClick={() => exportVehicleCSV(exportData())}>CSV</button>
           </div>
-        ) : (
-          <button className={styles.ghost} onClick={() => setAdding(true)}>+ Нов автомобил</button>
-        )}
+        </div>
 
         <div className={styles.themeBlock}>
           <span className={styles.themeLabel}>Тема</span>
@@ -211,6 +215,61 @@ export function Header() {
             <button className={styles.signOut} onClick={signOut}>Изход</button>
           </div>
         )}
+      </Modal>
+
+      {/* ── Нов автомобил ── */}
+      <Modal open={modal === 'add'} title="Нов автомобил" onClose={() => setModal('garage')}>
+        <div className={styles.addForm}>
+          <Field label="Име">
+            <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} placeholder="напр. Golf 6" />
+          </Field>
+          <Row>
+            <Field label="Рег. номер" hint="Само латиница · CB 1234 AB">
+              <input className={inputClass} value={plate} onChange={(e) => setPlate(normalizePlate(e.target.value))} placeholder="CB 1234 AB" />
+            </Field>
+            <Field label="Начален км">
+              <input className={inputClass} inputMode="numeric" value={odo} onChange={(e) => setOdo(e.target.value)} placeholder="0" />
+            </Field>
+          </Row>
+          <Field label="Гориво (резервоар 1)">
+            <select className={selectClass} value={fuel1} onChange={(e) => setFuel1(e.target.value as FuelType)}>{fuelOptions}</select>
+          </Field>
+          <Field label="Второ гориво (резервоар 2)" hint="за двугоривни коли, напр. газ">
+            <select className={selectClass} value={fuel2} onChange={(e) => setFuel2(e.target.value as FuelType | 'none')}>
+              <option value="none">Няма</option>
+              {fuelOptions}
+            </select>
+          </Field>
+          <div className={styles.editButtons}>
+            <button className={styles.ghost} style={{ marginTop: 0 }} onClick={() => setModal('garage')}>Отказ</button>
+            <button className={styles.primary} onClick={submitVehicle}>Добави</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Редактиране ── */}
+      <Modal open={modal === 'edit'} title={editing ? `Редактиране · ${editing.name}` : 'Редактиране'} onClose={() => { setEditing(null); setModal('garage') }}>
+        <div className={styles.addForm}>
+          <Field label="Име">
+            <input className={inputClass} value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="напр. Golf 6" />
+          </Field>
+          <Field label="Рег. номер" hint="Само латиница · CB 1234 AB">
+            <input className={inputClass} value={editPlate} onChange={(e) => setEditPlate(normalizePlate(e.target.value))} placeholder="CB 1234 AB" />
+          </Field>
+          <Field label="Гориво (резервоар 1)">
+            <select className={selectClass} value={editFuel1} onChange={(e) => setEditFuel1(e.target.value as FuelType)}>{fuelOptions}</select>
+          </Field>
+          <Field label="Второ гориво (резервоар 2)" hint="за двугоривни коли, напр. газ">
+            <select className={selectClass} value={editFuel2} onChange={(e) => setEditFuel2(e.target.value as FuelType | 'none')}>
+              <option value="none">Няма</option>
+              {fuelOptions}
+            </select>
+          </Field>
+          <div className={styles.editButtons}>
+            <button className={styles.ghost} style={{ marginTop: 0 }} onClick={() => { setEditing(null); setModal('garage') }}>Отказ</button>
+            <button className={styles.primary} onClick={saveEdit}>Запази</button>
+          </div>
+        </div>
       </Modal>
     </>
   )

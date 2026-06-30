@@ -144,6 +144,35 @@
   color: var(--muted);
   font-weight: 600;
 }
+.exportBlock {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.exportLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.exportButtons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.exportBtn {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.exportBtn:active {
+  background: var(--surface-3);
+}
 .themeBlock {
   margin-top: 20px;
   padding-top: 16px;

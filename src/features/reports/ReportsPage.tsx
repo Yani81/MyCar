@@ -11,9 +11,26 @@ import {
 } from '../../lib/calculations'
 import { money, num, monthLabel, dateShort, km } from '../../lib/format'
 import { IconIncome, IconRoute, IconWrench, IconFuel, IconChart } from '../../components/Layout/icons'
+import { Modal } from '../../components/ui/Modal'
+import { Field, Row, inputClass } from '../../components/ui/Field'
 
-type Range = 'month' | 'year' | 'all'
+type RangeOption = 'all' | 'year' | 'halfyear' | 'quarter' | 'month' | 'custom'
 type SubTab = 'general' | 'fuel' | 'expense' | 'income' | 'service'
+
+const RANGE_LABELS: Record<RangeOption, string> = {
+  all:      'От началото',
+  year:     'Тази година',
+  halfyear: 'Последните 6 месеца',
+  quarter:  'Последните 3 месеца',
+  month:    'Този месец',
+  custom:   'Произволен период',
+}
+
+function isoToBg(iso: string): string {
+  if (!iso) return '—'
+  const [y, m, d] = iso.split('-')
+  return `${d}.${m}.${y}`
+}
 type Stats = ReturnType<typeof computeStats>
 interface MonthlyRow { key: string; label: string; fuel: number; service: number; expense: number; income: number; total: number }
 
@@ -27,19 +44,31 @@ export function ReportsPage() {
   const incomes = useStore((s) => s.incomes)
   const trips = useStore((s) => s.trips)
   const readings = useStore((s) => s.readings)
-  const [range, setRange] = useState<Range>('all')
+  const [rangeOption, setRangeOption] = useState<RangeOption>('all')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState(new Date().toISOString().slice(0, 10))
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [tab, setTab] = useState<SubTab>('general')
+
+  const { from, to } = useMemo(() => {
+    const today = new Date()
+    const todayStr = today.toISOString().slice(0, 10)
+    switch (rangeOption) {
+      case 'all':      return { from: v?.createdAt.slice(0, 10) ?? '', to: todayStr }
+      case 'year':     return { from: `${today.getFullYear()}-01-01`, to: todayStr }
+      case 'halfyear': { const d = new Date(today); d.setMonth(d.getMonth() - 6); return { from: d.toISOString().slice(0, 10), to: todayStr } }
+      case 'quarter':  { const d = new Date(today); d.setMonth(d.getMonth() - 3); return { from: d.toISOString().slice(0, 10), to: todayStr } }
+      case 'month':    return { from: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`, to: todayStr }
+      case 'custom':   return { from: customFrom, to: customTo }
+    }
+  }, [v, rangeOption, customFrom, customTo])
 
   const data: AllData | null = useMemo(() => {
     if (!v) return null
-    let from = ''
-    const now = new Date()
-    if (range === 'month') from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-    if (range === 'year') from = `${now.getFullYear()}-01-01`
     const f = <T extends { vehicleId: string; date: string }>(arr: T[]) =>
-      arr.filter((x) => x.vehicleId === v.id && x.date >= from)
+      arr.filter((x) => x.vehicleId === v.id && (!from || x.date >= from) && (!to || x.date <= to))
     return { refuels: f(refuels), expenses: f(expenses), incomes: f(incomes), trips: f(trips), readings: f(readings) }
-  }, [v, refuels, expenses, incomes, trips, readings, range])
+  }, [v, refuels, expenses, incomes, trips, readings, from, to])
 
   const stats = useMemo(() => (v && data ? computeStats(v, data) : null), [v, data])
   const monthly: MonthlyRow[] = useMemo(
@@ -52,14 +81,46 @@ export function ReportsPage() {
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.stickyFilters}>
-        <div className={styles.range}>
-          {(['month', 'year', 'all'] as Range[]).map((r) => (
-            <button key={r} className={range === r ? styles.rActive : ''} onClick={() => setRange(r)}>
-              {r === 'month' ? 'Този месец' : r === 'year' ? 'Тази година' : 'Всичко'}
+      <Modal open={pickerOpen} title="Период" onClose={() => setPickerOpen(false)}>
+        <div className={styles.pickerList}>
+          {(Object.keys(RANGE_LABELS) as RangeOption[]).map((opt) => (
+            <button
+              key={opt}
+              className={`${styles.pickerOpt} ${rangeOption === opt ? styles.pickerActive : ''}`}
+              onClick={() => {
+                if (opt === 'custom' && rangeOption !== 'custom') {
+                  setCustomFrom(from)
+                  setCustomTo(to)
+                }
+                setRangeOption(opt)
+                if (opt !== 'custom') setPickerOpen(false)
+              }}
+            >
+              {RANGE_LABELS[opt]}
             </button>
           ))}
         </div>
+        {rangeOption === 'custom' && (
+          <>
+            <Row>
+              <Field label="От">
+                <input className={inputClass} type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+              </Field>
+              <Field label="До">
+                <input className={inputClass} type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
+              </Field>
+            </Row>
+            <button className={styles.applyBtn} onClick={() => setPickerOpen(false)}>Приложи</button>
+          </>
+        )}
+      </Modal>
+
+      <div className={styles.stickyFilters}>
+        <button className={styles.rangeBtn} onClick={() => setPickerOpen(true)}>
+          <span className={styles.rangeBtnLabel}>{RANGE_LABELS[rangeOption]}</span>
+          <span className={styles.rangeBtnDates}>{isoToBg(from)} – {isoToBg(to)}</span>
+          <span className={styles.rangeChev}>▾</span>
+        </button>
 
         <div className={styles.tabs}>
           {([['general', 'Общ'], ['fuel', 'Гориво'], ['expense', 'Разходи'], ['income', 'Приход'], ['service', 'Услуга']] as [SubTab, string][]).map(
@@ -115,7 +176,7 @@ function Fuel({ data, stats, monthly }: { data: AllData; stats: Stats; monthly: 
     <>
       <div className={styles.cards}>
         <Card label="За гориво" value={money(stats.totalFuelCost)} color="#f5821f" Icon={IconFuel} />
-        <Card label="Среден разход" value={stats.avgConsumption !== null ? num(stats.avgConsumption, 1) : '—'} unit="л/100км" accent color="#f5821f" Icon={IconChart} />
+        <Card label="Среден разход" value={stats.avgConsumption !== null ? num(stats.avgConsumption, 2) : '—'} unit="л/100км" accent color="#f5821f" Icon={IconChart} />
         <Card label="Ср. цена/литър" value={stats.avgPricePerLiter !== null ? money(stats.avgPricePerLiter) : '—'} />
         <Card label="Гориво / км" value={stats.fuelCostPerKm !== null ? money(stats.fuelCostPerKm) : '—'} />
       </div>
@@ -125,14 +186,14 @@ function Fuel({ data, stats, monthly }: { data: AllData; stats: Stats; monthly: 
           <div className={styles.tankGrid}>
             <Mini label="Средно" value={f.avg !== null ? `${num(f.avg, 2)} л/100км` : '—'} />
             <Mini label="Общ обем" value={`${num(f.liters, 1)} л`} />
-            <Mini label="Нисък" value={f.low !== null ? num(f.low, 1) : '—'} green />
-            <Mini label="Висок" value={f.high !== null ? num(f.high, 1) : '—'} red />
-            <Mini label="Последен" value={f.last !== null ? num(f.last, 1) : '—'} />
-            <Mini label="Обща цена" value={money(f.cost)} />
+            <Mini label="Обща стойност" value={money(f.cost)} />
+            <Mini label="Висок" value={f.high !== null ? num(f.high, 2) : '—'} red />
+            <Mini label="Последен" value={f.last !== null ? num(f.last, 2) : '—'} />
+            <Mini label="Нисък" value={f.low !== null ? num(f.low, 2) : '—'} green />
           </div>
         </div>
       ))}
-      <MonthlyChart monthly={monthly} dataKey="fuel" title="Разходи за гориво по месеци" />
+      <MonthlyChart monthly={monthly} dataKey="fuel" title="Разходи за гориво по месеци" label="Гориво" />
       {stations.length > 0 && <Donut title="По бензиностанции" buckets={stations} />}
       {priceTrend.length > 1 && (
         <>
@@ -142,8 +203,8 @@ function Fuel({ data, stats, monthly }: { data: AllData; stats: Stats; monthly: 
               <LineChart data={priceTrend} margin={{ top: 6, right: 6, left: -18, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke="var(--border)" />
                 <XAxis dataKey="x" tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} domain={['dataMin - 0.1', 'dataMax + 0.1']} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => [`${val.toFixed(3)} €/л`, 'Цена']} labelStyle={{ color: 'var(--muted)' }} />
+                <YAxis tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} domain={['dataMin - 0.1', 'dataMax + 0.1']} tickFormatter={(v: number) => v.toFixed(2)} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => [`${val.toFixed(2)} €/л`, 'Цена']} labelStyle={{ color: 'var(--muted)' }} />
                 <Line type="monotone" dataKey="value" stroke="var(--accent)" strokeWidth={2.5} dot={{ r: 2.5, fill: 'var(--accent)' }} />
               </LineChart>
             </ResponsiveContainer>
@@ -164,7 +225,7 @@ function Expense({ data, stats, monthly }: { data: AllData; stats: Stats; monthl
         <Card label="Други разходи" value={money(total)} perDay={stats.daysSpan} amount={total} dist={stats.totalDistance} accent color="#ec5b53" Icon={IconWrench} />
         <Card label="Брой записи" value={String(list.length)} />
       </div>
-      <MonthlyChart monthly={monthly} dataKey="expense" title="Разходи по месеци" color="#ec5b53" />
+      <MonthlyChart monthly={monthly} dataKey="expense" title="Разходи по месеци" color="#ec5b53" label="Разходи" />
       {cats.length > 0 && <Donut title="По категории" buckets={cats} />}
     </>
   )
@@ -178,7 +239,7 @@ function IncomeTab({ data, stats, monthly }: { data: AllData; stats: Stats; mont
         <Card label="Общо приход" value={money(stats.totalIncome)} accent color="#3f9c35" Icon={IconIncome} />
         <Card label="Баланс" value={money(stats.balance)} />
       </div>
-      <MonthlyChart monthly={monthly} dataKey="income" title="Приходи по месеци" color="var(--green)" />
+      <MonthlyChart monthly={monthly} dataKey="income" title="Приходи по месеци" color="var(--green)" label="Приходи" />
       {cats.length > 0 && <Donut title="По източник" buckets={cats} />}
     </>
   )
@@ -194,7 +255,7 @@ function Service({ data, monthly }: { data: AllData; monthly: MonthlyRow[] }) {
         <Card label="За сервиз" value={money(total)} accent color="#7a5c4a" Icon={IconWrench} />
         <Card label="Брой услуги" value={String(list.length)} />
       </div>
-      <MonthlyChart monthly={monthly} dataKey="service" title="Услуги по месеци" color="#7a5c4a" />
+      <MonthlyChart monthly={monthly} dataKey="service" title="Услуги по месеци" color="#7a5c4a" label="Услуги" />
       {cats.length > 0 && <Donut title="По вид услуга" buckets={cats} />}
     </>
   )
@@ -231,8 +292,8 @@ function Mini({ label, value, green, red }: { label: string; value: string; gree
   )
 }
 
-function MonthlyChart({ monthly, stacked, dataKey, title, color }: {
-  monthly: MonthlyRow[]; stacked?: boolean; dataKey?: keyof MonthlyRow; title?: string; color?: string
+function MonthlyChart({ monthly, stacked, dataKey, title, color, label }: {
+  monthly: MonthlyRow[]; stacked?: boolean; dataKey?: keyof MonthlyRow; title?: string; color?: string; label?: string
 }) {
   if (monthly.length === 0) return null
   return (
@@ -247,12 +308,12 @@ function MonthlyChart({ monthly, stacked, dataKey, title, color }: {
             <Tooltip cursor={{ fill: 'var(--surface-3)' }} contentStyle={tooltipStyle} formatter={(val: number) => money(val)} labelStyle={{ color: 'var(--muted)' }} />
             {stacked ? (
               <>
-                <Bar dataKey="fuel" stackId="a" fill="var(--accent)" />
-                <Bar dataKey="service" stackId="a" fill="#7a5c4a" />
-                <Bar dataKey="expense" stackId="a" fill="#ec5b53" radius={[5, 5, 0, 0]} />
+                <Bar dataKey="fuel" name="Гориво" stackId="a" fill="var(--accent)" />
+                <Bar dataKey="service" name="Услуги" stackId="a" fill="#7a5c4a" />
+                <Bar dataKey="expense" name="Разходи" stackId="a" fill="#ec5b53" radius={[5, 5, 0, 0]} />
               </>
             ) : (
-              <Bar dataKey={(dataKey as string) ?? 'total'} fill={color ?? 'var(--accent)'} radius={[5, 5, 0, 0]} />
+              <Bar dataKey={(dataKey as string) ?? 'total'} name={label ?? 'Общо'} fill={color ?? 'var(--accent)'} radius={[5, 5, 0, 0]} />
             )}
           </BarChart>
         </ResponsiveContainer>
