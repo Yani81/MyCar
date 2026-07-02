@@ -4,8 +4,10 @@ import { Field, Row, inputClass, selectClass, textareaClass, Toggle, Segmented, 
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore } from '../../store/useStore'
 import { todayISO, todayDateISO, toNumStr } from '../../lib/format'
+import { advanceReminderPatch } from '../../lib/calculations'
 import { EXPENSE_CATEGORIES, type Expense, type ExpenseKind, type ReminderBasis } from '../../types'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
+import { processReceipt } from '../../lib/image'
 import styles from './ExpenseForm.module.css'
 
 const INSURANCE_TYPES = ['Гражданска отговорност', 'Каско']
@@ -34,26 +36,6 @@ const installmentDates = (n: number, baseDate: string): string[] => {
   return Array.from({ length: n }, (_, i) => addMonths(baseDate, i * interval))
 }
 
-function compressImage(file: File): Promise<string> {
-  return new Promise((resolve) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        const MAX = 1000
-        const ratio = Math.min(MAX / img.width, MAX / img.height, 1)
-        const canvas = document.createElement('canvas')
-        canvas.width = img.width * ratio
-        canvas.height = img.height * ratio
-        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-        resolve(canvas.toDataURL('image/jpeg', 0.75))
-      }
-      img.src = e.target!.result as string
-    }
-    reader.readAsDataURL(file)
-  })
-}
-
 export function ExpenseForm({
   vehicleId,
   edit,
@@ -69,8 +51,11 @@ export function ExpenseForm({
   const updateExpense = useStore((s) => s.updateExpense)
   const removeExpense = useStore((s) => s.removeExpense)
   const addReminder = useStore((s) => s.addReminder)
+  const updateReminder = useStore((s) => s.updateReminder)
   const removeReminder = useStore((s) => s.removeReminder)
   const reminders = useStore((s) => s.reminders)
+  const allRefuels = useStore((s) => s.refuels)
+  const allReadings = useStore((s) => s.readings)
   const serviceShops = useStore((s) => s.serviceShops)
   const addServiceShop = useStore((s) => s.addServiceShop)
 
@@ -230,6 +215,23 @@ export function ExpenseForm({
           if (match) removeReminder(match.id)
         }
       })
+      // Неплатена вноска с дата без напомняне (нова/сменена дата при редакция) → създай
+      const company = insuranceCompany.trim()
+      const unpaid = installments.filter((r) => !!r.dueDate && !r.paid)
+      unpaid.forEach((inst, i) => {
+        const exists = reminders.some(
+          (r) => r.vehicleId === vehicleId && !r.done && r.dueDate === inst.dueDate && r.title.startsWith('Вноска')
+        )
+        if (!exists) {
+          addReminder({
+            vehicleId,
+            title: `${unpaid.length === 1 ? 'Вноска' : `Вноска ${i + 1}`} по ${insuranceType}${company ? ` – ${company}` : ''}`,
+            basis: 'date',
+            dueDate: inst.dueDate,
+            done: false,
+          })
+        }
+      })
     }
 
     if (isOil && !edit && enableReminder) {
@@ -243,6 +245,24 @@ export function ExpenseForm({
         repeatKm: Number(reminderKm) || undefined,
         done: false,
       })
+    }
+
+    // Нова услуга, съвпадаща с активно напомняне → предложи да го приключим
+    if (kind === 'service' && !edit) {
+      const catLc = cat.label.toLowerCase()
+      const match = reminders.find((r) => {
+        if (r.vehicleId !== vehicleId || r.done) return false
+        const t = r.title.toLowerCase()
+        return t.includes(catLc) || catLc.includes(t)
+      })
+      if (match && confirm(`Да отбележа ли напомнянето „${match.title}" като изпълнено?`)) {
+        const odos = [
+          Number(odometer) || 0,
+          ...allRefuels.filter((x) => x.vehicleId === vehicleId).map((x) => x.odometer),
+          ...allReadings.filter((x) => x.vehicleId === vehicleId).map((x) => x.odometer),
+        ]
+        updateReminder(match.id, advanceReminderPatch(match, Math.max(...odos)))
+      }
     }
 
     onClose()
@@ -261,7 +281,7 @@ export function ExpenseForm({
         style={{ display: 'none' }}
         onChange={async (e) => {
           const file = e.target.files?.[0]
-          if (file) setReceiptImage(await compressImage(file))
+          if (file) setReceiptImage(await processReceipt(file))
           e.target.value = ''
         }}
       />

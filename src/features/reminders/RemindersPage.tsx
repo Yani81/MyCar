@@ -1,7 +1,7 @@
 import { useMemo, useState, useRef, type ReactNode } from 'react'
 import styles from './RemindersPage.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
-import { computeStats, reminderInfo, type ReminderStatus, type AllData } from '../../lib/calculations'
+import { advanceReminderPatch, computeStats, reminderInfo, type ReminderStatus, type AllData } from '../../lib/calculations'
 import { useUI } from '../../store/useUI'
 import type { Reminder } from '../../types'
 
@@ -88,18 +88,7 @@ export function RemindersPage() {
   if (!v) return null
 
   const complete = (r: Reminder) => {
-    if (r.repeatMonths || r.repeatKm) {
-      const patch: Partial<Reminder> = {}
-      if (r.repeatMonths && r.dueDate) {
-        const d = new Date(r.dueDate)
-        d.setMonth(d.getMonth() + r.repeatMonths)
-        patch.dueDate = d.toISOString().slice(0, 10)
-      }
-      if (r.repeatKm) patch.dueOdometer = (r.dueOdometer ?? currentOdometer) + r.repeatKm
-      updateReminder(r.id, patch)
-    } else {
-      updateReminder(r.id, { done: true })
-    }
+    updateReminder(r.id, advanceReminderPatch(r, currentOdometer))
   }
 
   return (
@@ -140,7 +129,6 @@ export function RemindersPage() {
         </>
       )}
 
-      <button className="fab" onClick={() => openForm({ type: 'reminder', entry: null })} aria-label="Добави напомняне">+</button>
     </div>
   )
 }

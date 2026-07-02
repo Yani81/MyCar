@@ -1,17 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Header } from './components/Layout/Header'
 import { BottomNav, type Tab } from './components/Layout/BottomNav'
 import { Dashboard } from './features/dashboard/Dashboard'
 import { HistoryPage } from './features/history/HistoryPage'
 import { RemindersPage } from './features/reminders/RemindersPage'
-import { ReportsPage } from './features/reports/ReportsPage'
 import { ChecksPage } from './features/checks/ChecksPage'
 import { Forms } from './features/Forms'
 import { AddMenu } from './components/Layout/AddMenu'
 import { AuthPage } from './features/auth/AuthPage'
 import { useStore } from './store/useStore'
 import { useAuth } from './store/useAuth'
-import { loadFromCloud, saveToCloud } from './lib/sync'
+import { loadFromCloud, saveToCloud, refreshFromCloudIfNewer } from './lib/sync'
+
+// Recharts (~400 kB) се ползва само в Справки — зарежда се при първо отваряне на таба
+const ReportsPage = lazy(() =>
+  import('./features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage }))
+)
 
 function applyTheme(theme: 'auto' | 'light' | 'dark') {
   const root = document.documentElement
@@ -67,6 +71,15 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshFromCloudIfNewer()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!user) return
     if (sessionStorage.getItem('notif-checked')) return
     sessionStorage.setItem('notif-checked', '1')
 
@@ -118,7 +131,7 @@ export default function App() {
       {tab === 'dashboard' && <Dashboard go={setTab} />}
       {tab === 'history' && <HistoryPage />}
       {tab === 'reminders' && <RemindersPage />}
-      {tab === 'reports' && <ReportsPage />}
+      {tab === 'reports' && <Suspense fallback={null}><ReportsPage /></Suspense>}
       {tab === 'checks' && <ChecksPage go={setTab} />}
       <BottomNav active={tab} onChange={setTab} />
       <AddMenu />

@@ -3,7 +3,7 @@ import styles from './HistoryPage.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { useUI, type FormOpen, type HistoryFilter } from '../../store/useUI'
 import { money, km, dateShort, timeShort } from '../../lib/format'
-import { FUEL_LABELS, type Refuel, type Expense, type Income, type Trip, type OdometerReading } from '../../types'
+import { FUEL_LABELS, FUEL_UNITS, consUnitLabel, type Refuel, type Expense, type Income, type Trip, type OdometerReading } from '../../types'
 import { IconWrench, IconIncome, IconRoute, IconOdometer } from '../../components/Layout/icons'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
 import { computeConsumption, sortRefuels } from '../../lib/calculations'
@@ -218,7 +218,6 @@ export function HistoryPage() {
   const trips = useStore((s) => s.trips)
   const readings = useStore((s) => s.readings)
   const openForm = useUI((s) => s.openForm)
-  const setMenu = useUI((s) => s.setMenu)
   const historyFilter = useUI((s) => s.historyFilter)
   const setHistoryFilter = useUI((s) => s.setHistoryFilter)
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
@@ -488,17 +487,17 @@ export function HistoryPage() {
                           onKeyDown={e => e.key === 'Enter' && toggle(it.id)}
                         >
                           <div className={styles.refuelTitle}>
-                            {fmt2(r.liters)} литра
+                            {fmt2(r.liters)} {r.fuelType === 'electric' ? 'kWh' : 'литра'}
                           </div>
                           <div className={styles.cardMeta}>
                             <span className={styles.chip}>{money(r.total)}</span>
-                            <span className={styles.chip}>{fmt2(r.pricePerLiter)} € / л</span>
+                            <span className={styles.chip}>{fmt2(r.pricePerLiter)} € / {FUEL_UNITS[r.fuelType]}</span>
                             <span className={styles.metaDate}>{dateShort(it.date)}</span>
                             <span className={styles.chevron}><ChevronIcon open={isExp} /></span>
                           </div>
                           {it.consumption != null && it.consumption > 0 && (
                             <div className={styles.pill}>
-                              {fmt2(it.consumption)} л / 100 км от предишно пълно зареждане
+                              {fmt2(it.consumption)} {consUnitLabel(r.fuelType)} от предишно пълно зареждане
                             </div>
                           )}
                         </div>
@@ -569,7 +568,6 @@ export function HistoryPage() {
         ))
       )}
 
-      <button className="fab" onClick={() => setMenu(true)} aria-label="Добави запис">+</button>
       {lightboxImg && <ImageLightbox src={lightboxImg} onClose={() => setLightboxImg(null)} />}
     </div>
   )

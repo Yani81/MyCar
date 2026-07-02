@@ -251,6 +251,19 @@ export interface ReminderInfo {
   label: string
 }
 
+/** Патч при „изпълнено": повтарящо се напомняне се мести напред, еднократно се отбелязва done. */
+export const advanceReminderPatch = (r: Reminder, currentOdo: number): Partial<Reminder> => {
+  if (!r.repeatMonths && !r.repeatKm) return { done: true }
+  const patch: Partial<Reminder> = {}
+  if (r.repeatMonths && r.dueDate) {
+    const d = new Date(r.dueDate)
+    d.setMonth(d.getMonth() + r.repeatMonths)
+    patch.dueDate = d.toISOString().slice(0, 10)
+  }
+  if (r.repeatKm) patch.dueOdometer = (r.dueOdometer ?? currentOdo) + r.repeatKm
+  return patch
+}
+
 export const reminderInfo = (r: Reminder, odo: number): ReminderInfo => {
   let daysLeft: number | null = null
   let kmLeft: number | null = null

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import styles from './Header.module.css'
 import { IconChevron, IconCar, IconTrash, IconPencil } from './icons'
 import { Modal } from '../ui/Modal'
@@ -7,6 +7,7 @@ import { useStore, useActiveVehicle } from '../../store/useStore'
 import { useAuth } from '../../store/useAuth'
 import { FUEL_LABELS, type FuelType, type Vehicle } from '../../types'
 import { exportVehiclePDF, exportVehicleCSV } from '../../lib/export'
+import { downloadBackupJSON, parseBackupJSON } from '../../lib/backup'
 
 type ModalView = 'none' | 'garage' | 'add' | 'edit'
 
@@ -37,6 +38,50 @@ export function Header() {
   const reminders = useStore((s) => s.reminders)
 
   const [modal, setModal] = useState<ModalView>('none')
+  const importInputRef = useRef<HTMLInputElement>(null)
+
+  const exportBackup = () => {
+    const s = useStore.getState()
+    downloadBackupJSON({
+      vehicles: s.vehicles,
+      refuels: s.refuels,
+      expenses: s.expenses,
+      incomes: s.incomes,
+      trips: s.trips,
+      readings: s.readings,
+      reminders: s.reminders,
+      activeVehicleId: s.activeVehicleId,
+      theme: s.theme,
+      vehicleChecks: s.vehicleChecks,
+      serviceShops: s.serviceShops,
+    })
+  }
+
+  const importBackup = async (file: File) => {
+    try {
+      const data = parseBackupJSON(await file.text())
+      const when = data.exportedAt ? ` от ${new Date(data.exportedAt).toLocaleDateString('bg-BG')}` : ''
+      if (!confirm(`Възстановяване на бекъп${when}? Това ще замени ВСИЧКИ текущи данни.`)) return
+      useStore.setState({
+        vehicles: data.vehicles,
+        refuels: data.refuels,
+        expenses: data.expenses,
+        incomes: data.incomes,
+        trips: data.trips,
+        readings: data.readings,
+        reminders: data.reminders,
+        activeVehicleId: data.vehicles.some((v) => v.id === data.activeVehicleId)
+          ? data.activeVehicleId
+          : data.vehicles[0].id,
+        theme: data.theme,
+        vehicleChecks: data.vehicleChecks,
+        serviceShops: data.serviceShops,
+      })
+      setModal('none')
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Файлът не може да бъде прочетен.')
+    }
+  }
 
   // Add vehicle state
   const [name, setName] = useState('')
@@ -55,7 +100,7 @@ export function Header() {
   // Export state
   const [exportPeriod, setExportPeriod] = useState<'all' | 'custom'>('all')
   const [exportFrom, setExportFrom] = useState('')
-  const [exportTo, setExportTo] = useState(new Date().toISOString().slice(0, 10))
+  const [exportTo, setExportTo] = useState(new Date().toLocaleDateString('sv'))
 
   const exportData = () => {
     const inRange = (date: string) => {
@@ -193,6 +238,25 @@ export function Header() {
           <div className={styles.exportButtons}>
             <button className={styles.exportBtn} onClick={() => exportVehiclePDF(exportData())}>PDF</button>
             <button className={styles.exportBtn} onClick={() => exportVehicleCSV(exportData())}>CSV</button>
+          </div>
+        </div>
+
+        <div className={styles.exportBlock}>
+          <span className={styles.exportLabel}>Резервно копие (всички автомобили)</span>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json,application/json"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) importBackup(file)
+              e.target.value = ''
+            }}
+          />
+          <div className={styles.exportButtons}>
+            <button className={styles.exportBtn} onClick={exportBackup}>Изтегли JSON</button>
+            <button className={styles.exportBtn} onClick={() => importInputRef.current?.click()}>Възстанови</button>
           </div>
         </div>
 

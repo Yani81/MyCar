@@ -3,35 +3,16 @@ import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, selectClass, Toggle } from '../../components/ui/Field'
 import { useStore } from '../../store/useStore'
 import { todayISO, km, toNumStr } from '../../lib/format'
-import { FUEL_LABELS, type Refuel, type FuelType } from '../../types'
+import { FUEL_LABELS, FUEL_UNITS, type Refuel, type FuelType } from '../../types'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
+import { processReceipt } from '../../lib/image'
 import styles from './RefuelForm.module.css'
 
 const DEFAULT_STATIONS = [
   'BP', 'ЕКО', 'Газпром', 'Инса Ойл', 'Лукойл',
   'OMV', 'Петрол', 'Ромпетрол', 'Shell', 'Тера',
 ]
-
-function compressImage(file: File): Promise<string> {
-  return new Promise((resolve) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        const MAX = 1000
-        const ratio = Math.min(MAX / img.width, MAX / img.height, 1)
-        const canvas = document.createElement('canvas')
-        canvas.width = img.width * ratio
-        canvas.height = img.height * ratio
-        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-        resolve(canvas.toDataURL('image/jpeg', 0.75))
-      }
-      img.src = e.target!.result as string
-    }
-    reader.readAsDataURL(file)
-  })
-}
 
 export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; edit: Refuel | null; onClose: () => void }) {
   const vehicle = useStore((s) => s.vehicles.find((v) => v.id === vehicleId))
@@ -173,17 +154,17 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
         </Field>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-        <Field label="Литри">
+        <Field label={fuelType === 'electric' ? 'kWh' : 'Литри'}>
           <input className={inputClass} inputMode="decimal" value={liters} onChange={(e) => onLiters(e.target.value)} placeholder="0.00" />
         </Field>
         <Field label="Сума (€)">
           <input className={inputClass} inputMode="decimal" value={total} onChange={(e) => onTotal(e.target.value)} placeholder="0.00" />
         </Field>
-        <Field label="Цена/л">
+        <Field label={`Цена/${FUEL_UNITS[fuelType]}`}>
           <input className={inputClass} inputMode="decimal" value={price} onChange={(e) => onPrice(e.target.value)} placeholder="0.000" />
         </Field>
       </div>
-      <Toggle checked={fullTank} onChange={setFullTank} label="Заредих догоре (пълен резервоар)" />
+      <Toggle checked={fullTank} onChange={setFullTank} label={fuelType === 'electric' ? 'Заредих до пълно (100%)' : 'Заредих догоре (пълен резервоар)'} />
       <input
         ref={fileInputRef}
         type="file"
@@ -192,7 +173,7 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
         style={{ display: 'none' }}
         onChange={async (e) => {
           const file = e.target.files?.[0]
-          if (file) setReceiptImage(await compressImage(file))
+          if (file) setReceiptImage(await processReceipt(file))
           e.target.value = ''
         }}
       />

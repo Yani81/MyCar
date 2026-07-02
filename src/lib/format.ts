@@ -6,6 +6,9 @@ export const money = (n: number): string =>
 export const num = (n: number, digits = 1): string =>
   new Intl.NumberFormat(BG, { minimumFractionDigits: 0, maximumFractionDigits: digits }).format(n)
 
+export const numFixed = (n: number, digits = 2): string =>
+  new Intl.NumberFormat(BG, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n)
+
 export const km = (n: number): string => num(n, 0) + ' км'
 
 export const liters = (n: number): string => num(n, 2) + ' л'

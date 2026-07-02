@@ -115,6 +115,18 @@ export const FUEL_LABELS: Record<FuelType, string> = {
   electric: 'Ток',
 }
 
+/** Мерна единица за количество по вид гориво (литри / киловатчаса). */
+export const FUEL_UNITS: Record<FuelType, string> = {
+  petrol: 'л',
+  diesel: 'л',
+  lpg: 'л',
+  cng: 'л',
+  electric: 'kWh',
+}
+
+/** Единица за разход: л/100км или kWh/100км. */
+export const consUnitLabel = (fuel: FuelType): string => `${FUEL_UNITS[fuel]}/100км`
+
 export const EXPENSE_CATEGORIES: { id: string; label: string; kind: ExpenseKind }[] = [
   { id: 'service', label: 'Сервиз', kind: 'service' },
   { id: 'oil', label: 'Смяна на масло', kind: 'service' },

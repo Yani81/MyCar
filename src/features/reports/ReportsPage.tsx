@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, CartesianGrid,
@@ -6,10 +6,11 @@ import {
 import styles from './ReportsPage.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import {
-  computeStats, monthlySpend, expensesByCategory, incomesByCategory,
+  computeStats, computeConsumption, monthlySpend, expensesByCategory, incomesByCategory,
   refuelsByStation, fuelPriceTrend, type AllData, type NamedBucket,
 } from '../../lib/calculations'
-import { money, num, monthLabel, dateShort, km } from '../../lib/format'
+import { consUnitLabel, FUEL_UNITS } from '../../types'
+import { money, num, numFixed, monthLabel, dateShort, km } from '../../lib/format'
 import { IconIncome, IconRoute, IconWrench, IconFuel, IconChart } from '../../components/Layout/icons'
 import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass } from '../../components/ui/Field'
@@ -46,22 +47,33 @@ export function ReportsPage() {
   const readings = useStore((s) => s.readings)
   const [rangeOption, setRangeOption] = useState<RangeOption>('all')
   const [customFrom, setCustomFrom] = useState('')
-  const [customTo, setCustomTo] = useState(new Date().toISOString().slice(0, 10))
+  const [customTo, setCustomTo] = useState(new Date().toLocaleDateString('sv'))
   const [pickerOpen, setPickerOpen] = useState(false)
   const [tab, setTab] = useState<SubTab>('general')
 
+  const firstRecordDate = useMemo(() => {
+    if (!v) return ''
+    let min = ''
+    for (const arr of [refuels, expenses, incomes, trips, readings] as { vehicleId: string; date: string }[][]) {
+      for (const x of arr) {
+        if (x.vehicleId === v.id && (!min || x.date < min)) min = x.date
+      }
+    }
+    return min || v.createdAt.slice(0, 10)
+  }, [v, refuels, expenses, incomes, trips, readings])
+
   const { from, to } = useMemo(() => {
     const today = new Date()
-    const todayStr = today.toISOString().slice(0, 10)
+    const todayStr = today.toLocaleDateString('sv')
     switch (rangeOption) {
-      case 'all':      return { from: v?.createdAt.slice(0, 10) ?? '', to: todayStr }
+      case 'all':      return { from: firstRecordDate, to: todayStr }
       case 'year':     return { from: `${today.getFullYear()}-01-01`, to: todayStr }
-      case 'halfyear': { const d = new Date(today); d.setMonth(d.getMonth() - 6); return { from: d.toISOString().slice(0, 10), to: todayStr } }
-      case 'quarter':  { const d = new Date(today); d.setMonth(d.getMonth() - 3); return { from: d.toISOString().slice(0, 10), to: todayStr } }
+      case 'halfyear': { const d = new Date(today); d.setMonth(d.getMonth() - 6); return { from: d.toLocaleDateString('sv'), to: todayStr } }
+      case 'quarter':  { const d = new Date(today); d.setMonth(d.getMonth() - 3); return { from: d.toLocaleDateString('sv'), to: todayStr } }
       case 'month':    return { from: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`, to: todayStr }
       case 'custom':   return { from: customFrom, to: customTo }
     }
-  }, [v, rangeOption, customFrom, customTo])
+  }, [firstRecordDate, rangeOption, customFrom, customTo])
 
   const data: AllData | null = useMemo(() => {
     if (!v) return null
@@ -172,26 +184,52 @@ function General({ stats, monthly }: { stats: Stats; monthly: MonthlyRow[] }) {
 function Fuel({ data, stats, monthly }: { data: AllData; stats: Stats; monthly: MonthlyRow[] }) {
   const stations = refuelsByStation(data.refuels)
   const priceTrend = fuelPriceTrend(data.refuels).map((p) => ({ x: dateShort(p.x), value: p.value }))
+  const multiTrend = stats.byFuel.filter((f) => f.liters > 0).length > 1
+  const mainFuel = stats.byFuel[0]?.fuel ?? 'petrol'
+  const consTrends = stats.byFuel
+    .map((f) => ({
+      fuel: f.fuel,
+      label: f.label,
+      points: computeConsumption(data.refuels.filter((r) => r.fuelType === f.fuel))
+        .map((p) => ({ x: dateShort(p.date), value: Number(p.consumption.toFixed(2)) })),
+    }))
+    .filter((t) => t.points.length > 1)
   return (
     <>
       <div className={styles.cards}>
         <Card label="За гориво" value={money(stats.totalFuelCost)} color="#f5821f" Icon={IconFuel} />
-        <Card label="Среден разход" value={stats.avgConsumption !== null ? num(stats.avgConsumption, 2) : '—'} unit="л/100км" accent color="#f5821f" Icon={IconChart} />
-        <Card label="Ср. цена/литър" value={stats.avgPricePerLiter !== null ? money(stats.avgPricePerLiter) : '—'} />
+        <Card label="Среден разход" value={stats.avgConsumption !== null ? numFixed(stats.avgConsumption) : '—'} unit={consUnitLabel(mainFuel)} accent color="#f5821f" Icon={IconChart} />
+        <Card label={`Ср. цена/${mainFuel === 'electric' ? 'kWh' : 'литър'}`} value={stats.avgPricePerLiter !== null ? money(stats.avgPricePerLiter) : '—'} />
         <Card label="Гориво / км" value={stats.fuelCostPerKm !== null ? money(stats.fuelCostPerKm) : '—'} />
       </div>
       {stats.byFuel.filter((f) => f.liters > 0).map((f, i) => (
         <div key={f.fuel} className={`card ${styles.tank}`}>
           <div className={styles.tankHead}>Резервоар {i + 1} · {f.label}</div>
           <div className={styles.tankGrid}>
-            <Mini label="Средно" value={f.avg !== null ? `${num(f.avg, 2)} л/100км` : '—'} />
-            <Mini label="Общ обем" value={`${num(f.liters, 1)} л`} />
+            <Mini label="Средно" value={f.avg !== null ? `${numFixed(f.avg)} ${consUnitLabel(f.fuel)}` : '—'} />
+            <Mini label="Общ обем" value={`${num(f.liters, 1)} ${FUEL_UNITS[f.fuel]}`} />
             <Mini label="Обща стойност" value={money(f.cost)} />
-            <Mini label="Висок" value={f.high !== null ? num(f.high, 2) : '—'} red />
-            <Mini label="Последен" value={f.last !== null ? num(f.last, 2) : '—'} />
-            <Mini label="Нисък" value={f.low !== null ? num(f.low, 2) : '—'} green />
+            <Mini label="Висок" value={f.high !== null ? numFixed(f.high) : '—'} red />
+            <Mini label="Последен" value={f.last !== null ? numFixed(f.last) : '—'} />
+            <Mini label="Нисък" value={f.low !== null ? numFixed(f.low) : '—'} green />
           </div>
         </div>
+      ))}
+      {consTrends.map((t) => (
+        <Fragment key={t.fuel}>
+          <div className="section-title">Разход във времето{multiTrend ? ` · ${t.label}` : ''}</div>
+          <div className={`card ${styles.chartCard}`}>
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={t.points} margin={{ top: 6, right: 6, left: -18, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke="var(--border)" />
+                <XAxis dataKey="x" tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} tickFormatter={(v: number) => v.toFixed(1)} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => [`${val.toFixed(2)} ${consUnitLabel(t.fuel)}`, 'Разход']} labelStyle={{ color: 'var(--muted)' }} />
+                <Line type="monotone" dataKey="value" stroke="#f5821f" strokeWidth={2.5} dot={{ r: 2.5, fill: '#f5821f' }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </Fragment>
       ))}
       <MonthlyChart monthly={monthly} dataKey="fuel" title="Разходи за гориво по месеци" label="Гориво" />
       {stations.length > 0 && <Donut title="По бензиностанции" buckets={stations} />}
@@ -204,7 +242,7 @@ function Fuel({ data, stats, monthly }: { data: AllData; stats: Stats; monthly: 
                 <CartesianGrid vertical={false} stroke="var(--border)" />
                 <XAxis dataKey="x" tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} domain={['dataMin - 0.1', 'dataMax + 0.1']} tickFormatter={(v: number) => v.toFixed(2)} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => [`${val.toFixed(2)} €/л`, 'Цена']} labelStyle={{ color: 'var(--muted)' }} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => [`${val.toFixed(2)} €/${FUEL_UNITS[mainFuel]}`, 'Цена']} labelStyle={{ color: 'var(--muted)' }} />
                 <Line type="monotone" dataKey="value" stroke="var(--accent)" strokeWidth={2.5} dot={{ r: 2.5, fill: 'var(--accent)' }} />
               </LineChart>
             </ResponsiveContainer>

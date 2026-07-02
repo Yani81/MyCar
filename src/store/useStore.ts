@@ -13,6 +13,7 @@ import type {
   VehicleCheckResult,
 } from '../types'
 import { uid } from '../lib/id'
+import { deleteReceipt } from '../lib/image'
 import type { StoreData } from '../lib/sync'
 
 export type Theme = 'auto' | 'light' | 'dark'
@@ -83,7 +84,7 @@ type ListKeys = 'vehicles' | 'refuels' | 'expenses' | 'incomes' | 'trips' | 'rea
 
 export const useStore = create<State>()(
   persist(
-    (set) => {
+    (set, get) => {
       const upd =
         (key: ListKeys) =>
         (id: string, patch: object) =>
@@ -122,6 +123,10 @@ export const useStore = create<State>()(
         updateVehicle: upd('vehicles'),
         removeVehicle: (id) =>
           set((s) => {
+            // Трие снимките на бележките от Storage
+            ;[...s.refuels, ...s.expenses]
+              .filter((x) => x.vehicleId === id)
+              .forEach((x) => deleteReceipt(x.receiptImage))
             // Премахва МПС-то от списъка
             const vehicles = s.vehicles.filter((v) => v.id !== id)
             // Помощна функция: изтрива всички записи, свързани с това МПС
@@ -141,12 +146,30 @@ export const useStore = create<State>()(
           }),
 
         addRefuel: (r) => set((s) => ({ refuels: [...s.refuels, { ...r, id: uid() }] })),
-        updateRefuel: upd('refuels'),
-        removeRefuel: del('refuels'),
+        updateRefuel: (id, patch) => {
+          if ('receiptImage' in patch) {
+            const old = get().refuels.find((x) => x.id === id)?.receiptImage
+            if (old && old !== patch.receiptImage) deleteReceipt(old)
+          }
+          upd('refuels')(id, patch)
+        },
+        removeRefuel: (id) => {
+          deleteReceipt(get().refuels.find((x) => x.id === id)?.receiptImage)
+          del('refuels')(id)
+        },
 
         addExpense: (e) => set((s) => ({ expenses: [...s.expenses, { ...e, id: uid() }] })),
-        updateExpense: upd('expenses'),
-        removeExpense: del('expenses'),
+        updateExpense: (id, patch) => {
+          if ('receiptImage' in patch) {
+            const old = get().expenses.find((x) => x.id === id)?.receiptImage
+            if (old && old !== patch.receiptImage) deleteReceipt(old)
+          }
+          upd('expenses')(id, patch)
+        },
+        removeExpense: (id) => {
+          deleteReceipt(get().expenses.find((x) => x.id === id)?.receiptImage)
+          del('expenses')(id)
+        },
 
         addIncome: (i) => set((s) => ({ incomes: [...s.incomes, { ...i, id: uid() }] })),
         updateIncome: upd('incomes'),
