@@ -363,21 +363,33 @@ function MonthlyChart({ monthly, stacked, dataKey, title, color, label }: {
 function Donut({ title, buckets }: { title: string; buckets: NamedBucket[] }) {
   if (buckets.length === 0) return null
   const top = buckets.slice(0, 8)
+  const total = buckets.reduce((s, b) => s + b.total, 0)
   return (
     <>
       <div className="section-title">{title}</div>
       <div className={`card ${styles.chartCard}`}>
-        <ResponsiveContainer width="100%" height={200}>
-          <PieChart>
-            <Pie data={top} dataKey="total" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2} stroke="none">
-              {top.map((_, i) => <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />)}
-            </Pie>
-            <Tooltip contentStyle={tooltipStyle} formatter={(val: number, name) => [money(val), name]} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className={styles.legend}>
+        <div className={styles.donutWrap}>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie data={top} dataKey="total" nameKey="name" innerRadius={54} outerRadius={80} paddingAngle={2} stroke="none">
+                {top.map((_, i) => <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />)}
+              </Pie>
+              <Tooltip contentStyle={tooltipStyle} formatter={(val: number, name) => [money(val), name]} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className={styles.donutCenter}>
+            <span className={styles.donutCenterLabel}>Общо</span>
+            <span className={`${styles.donutCenterValue} mono`}>{money(total)}</span>
+          </div>
+        </div>
+        <div className={styles.legendTable}>
           {top.map((b, i) => (
-            <span key={b.name}><i style={{ background: DONUT_COLORS[i % DONUT_COLORS.length] }} />{b.name} · <b className="mono">{money(b.total)}</b></span>
+            <div key={b.name} className={styles.legendRow}>
+              <i style={{ background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
+              <span className={styles.legendName}>{b.name}</span>
+              <b className="mono">{money(b.total)}</b>
+              <span className={`${styles.legendPct} mono`}>{total > 0 ? `${num((b.total / total) * 100, 1)}%` : '—'}</span>
+            </div>
           ))}
         </div>
       </div>
