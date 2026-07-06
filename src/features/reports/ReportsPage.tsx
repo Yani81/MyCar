@@ -7,7 +7,7 @@ import styles from './ReportsPage.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import {
   computeStats, computeConsumption, monthlySpend, expensesByCategory, incomesByCategory,
-  refuelsByStation, fuelPriceTrend, type AllData, type NamedBucket,
+  refuelsByStation, fuelPriceTrend, refuelIntervalStats, recordIntervalStats, type AllData, type NamedBucket,
 } from '../../lib/calculations'
 import { consUnitLabel, FUEL_UNITS } from '../../types'
 import { money, num, numFixed, monthLabel, dateShort, km } from '../../lib/format'
@@ -84,8 +84,8 @@ export function ReportsPage() {
 
   const stats = useMemo(() => (v && data ? computeStats(v, data) : null), [v, data])
   const monthly: MonthlyRow[] = useMemo(
-    () => (data ? monthlySpend(data).slice(-12).map((b) => ({ ...b, label: monthLabel(b.key) })) : []),
-    [data]
+    () => (data ? monthlySpend(data, from, to).map((b) => ({ ...b, label: monthLabel(b.key) })) : []),
+    [data, from, to]
   )
 
   if (!v || !data || !stats) return null
@@ -183,6 +183,7 @@ function General({ stats, monthly }: { stats: Stats; monthly: MonthlyRow[] }) {
 
 function Fuel({ data, stats, monthly }: { data: AllData; stats: Stats; monthly: MonthlyRow[] }) {
   const stations = refuelsByStation(data.refuels)
+  const intervals = refuelIntervalStats(data.refuels)
   const priceTrend = fuelPriceTrend(data.refuels).map((p) => ({ x: dateShort(p.x), value: p.value }))
   const multiTrend = stats.byFuel.filter((f) => f.liters > 0).length > 1
   const mainFuel = stats.byFuel[0]?.fuel ?? 'petrol'
@@ -202,6 +203,17 @@ function Fuel({ data, stats, monthly }: { data: AllData; stats: Stats; monthly: 
         <Card label={`Ср. цена/${mainFuel === 'electric' ? 'kWh' : 'литър'}`} value={stats.avgPricePerLiter !== null ? money(stats.avgPricePerLiter) : '—'} />
         <Card label="Гориво / км" value={stats.fuelCostPerKm !== null ? money(stats.fuelCostPerKm) : '—'} />
       </div>
+      {intervals.count > 0 && (
+        <div className={`card ${styles.tank}`}>
+          <div className={styles.tankHead}>Зареждания</div>
+          <div className={styles.tankGrid2}>
+            <Mini label="Брой зареждания" value={String(intervals.count)} />
+            <Mini label="Ср. дни между зарежданията" value={intervals.avgDaysBetween !== null ? num(intervals.avgDaysBetween, 1) : '—'} />
+            <Mini label="Ср. км между зарежданията" value={intervals.avgKmBetween !== null ? km(Math.round(intervals.avgKmBetween)) : '—'} />
+            <Mini label="Разход на ден (гориво)" value={intervals.fuelCostPerDay !== null ? money(intervals.fuelCostPerDay) : '—'} />
+          </div>
+        </div>
+      )}
       {stats.byFuel.filter((f) => f.liters > 0).map((f, i) => (
         <div key={f.fuel} className={`card ${styles.tank}`}>
           <div className={styles.tankHead}>Резервоар {i + 1} · {f.label}</div>
@@ -257,12 +269,24 @@ function Expense({ data, stats, monthly }: { data: AllData; stats: Stats; monthl
   const list = data.expenses.filter((e) => e.kind === 'expense')
   const cats = expensesByCategory(list)
   const total = cats.reduce((s, c) => s + c.total, 0)
+  const rec = recordIntervalStats(list.map((e) => ({ date: e.date, amount: e.cost })))
   return (
     <>
       <div className={styles.cards}>
         <Card label="Други разходи" value={money(total)} perDay={stats.daysSpan} amount={total} dist={stats.totalDistance} accent color="#ec5b53" Icon={IconWrench} />
         <Card label="Брой записи" value={String(list.length)} />
       </div>
+      {rec.count > 0 && (
+        <div className={`card ${styles.tank}`}>
+          <div className={styles.tankHead}>Записи</div>
+          <div className={styles.tankGrid2}>
+            <Mini label="Брой записи" value={String(rec.count)} />
+            <Mini label="Ср. дни между записите" value={rec.avgDaysBetween !== null ? num(rec.avgDaysBetween, 1) : '—'} />
+            <Mini label="Ср. сума на запис" value={rec.avgAmount !== null ? money(rec.avgAmount) : '—'} />
+            <Mini label="Разход на ден" value={rec.amountPerDay !== null ? money(rec.amountPerDay) : '—'} />
+          </div>
+        </div>
+      )}
       <MonthlyChart monthly={monthly} dataKey="expense" title="Разходи по месеци" color="#ec5b53" label="Разходи" />
       {cats.length > 0 && <Donut title="По категории" buckets={cats} />}
     </>
@@ -271,12 +295,24 @@ function Expense({ data, stats, monthly }: { data: AllData; stats: Stats; monthl
 
 function IncomeTab({ data, stats, monthly }: { data: AllData; stats: Stats; monthly: MonthlyRow[] }) {
   const cats = incomesByCategory(data.incomes)
+  const rec = recordIntervalStats(data.incomes.map((i) => ({ date: i.date, amount: i.amount })))
   return (
     <>
       <div className={styles.cards}>
         <Card label="Общо приход" value={money(stats.totalIncome)} accent color="#3f9c35" Icon={IconIncome} />
         <Card label="Баланс" value={money(stats.balance)} />
       </div>
+      {rec.count > 0 && (
+        <div className={`card ${styles.tank}`}>
+          <div className={styles.tankHead}>Приходи</div>
+          <div className={styles.tankGrid2}>
+            <Mini label="Брой приходи" value={String(rec.count)} />
+            <Mini label="Ср. дни между приходите" value={rec.avgDaysBetween !== null ? num(rec.avgDaysBetween, 1) : '—'} />
+            <Mini label="Ср. сума на приход" value={rec.avgAmount !== null ? money(rec.avgAmount) : '—'} />
+            <Mini label="Приход на ден" value={rec.amountPerDay !== null ? money(rec.amountPerDay) : '—'} />
+          </div>
+        </div>
+      )}
       <MonthlyChart monthly={monthly} dataKey="income" title="Приходи по месеци" color="var(--green)" label="Приходи" />
       {cats.length > 0 && <Donut title="По източник" buckets={cats} />}
     </>
@@ -287,12 +323,24 @@ function Service({ data, monthly }: { data: AllData; monthly: MonthlyRow[] }) {
   const list = data.expenses.filter((e) => e.kind === 'service')
   const cats = expensesByCategory(list)
   const total = cats.reduce((s, c) => s + c.total, 0)
+  const rec = recordIntervalStats(list.map((e) => ({ date: e.date, amount: e.cost })))
   return (
     <>
       <div className={styles.cards}>
         <Card label="За сервиз" value={money(total)} accent color="#7a5c4a" Icon={IconWrench} />
         <Card label="Брой услуги" value={String(list.length)} />
       </div>
+      {rec.count > 0 && (
+        <div className={`card ${styles.tank}`}>
+          <div className={styles.tankHead}>Услуги</div>
+          <div className={styles.tankGrid2}>
+            <Mini label="Брой услуги" value={String(rec.count)} />
+            <Mini label="Ср. дни между услугите" value={rec.avgDaysBetween !== null ? num(rec.avgDaysBetween, 1) : '—'} />
+            <Mini label="Ср. сума на услуга" value={rec.avgAmount !== null ? money(rec.avgAmount) : '—'} />
+            <Mini label="Разход на ден" value={rec.amountPerDay !== null ? money(rec.amountPerDay) : '—'} />
+          </div>
+        </div>
+      )}
       <MonthlyChart monthly={monthly} dataKey="service" title="Услуги по месеци" color="#7a5c4a" label="Услуги" />
       {cats.length > 0 && <Donut title="По вид услуга" buckets={cats} />}
     </>

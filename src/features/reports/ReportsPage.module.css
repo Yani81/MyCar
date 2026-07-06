@@ -162,6 +162,11 @@
   grid-template-columns: 1fr 1fr 1fr;
   gap: 12px 10px;
 }
+.tankGrid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 10px;
+}
 .mini {
   display: flex;
   flex-direction: column;

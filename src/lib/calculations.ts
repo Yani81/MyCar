@@ -182,6 +182,53 @@ export const computeStats = (v: Vehicle, d: AllData): VehicleStats => {
   }
 }
 
+export interface RefuelIntervalStats {
+  count: number
+  avgDaysBetween: number | null
+  avgKmBetween: number | null
+  fuelCostPerDay: number | null
+}
+
+/** Статистика на интервалите между зарежданията: период първо→последно ÷ (брой − 1). */
+export const refuelIntervalStats = (refuels: Refuel[]): RefuelIntervalStats => {
+  const count = refuels.length
+  if (count < 2) return { count, avgDaysBetween: null, avgKmBetween: null, fuelCostPerDay: null }
+  const dates = refuels.map((r) => r.date).sort()
+  const spanDays = Math.round((new Date(dates[count - 1]).getTime() - new Date(dates[0]).getTime()) / 86400000)
+  const sorted = sortRefuels(refuels)
+  const kmSpan = sorted[count - 1].odometer - sorted[0].odometer
+  const totalCost = refuels.reduce((s, r) => s + r.total, 0)
+  return {
+    count,
+    avgDaysBetween: spanDays > 0 ? spanDays / (count - 1) : null,
+    avgKmBetween: kmSpan > 0 ? kmSpan / (count - 1) : null,
+    fuelCostPerDay: spanDays > 0 ? totalCost / spanDays : null,
+  }
+}
+
+export interface RecordIntervalStats {
+  count: number
+  avgDaysBetween: number | null
+  avgAmount: number | null
+  amountPerDay: number | null
+}
+
+/** Статистика на записи (разходи/приходи/услуги): период първо→последно ÷ (брой − 1). */
+export const recordIntervalStats = (records: { date: string; amount: number }[]): RecordIntervalStats => {
+  const count = records.length
+  const totalAmount = records.reduce((s, r) => s + r.amount, 0)
+  const avgAmount = count > 0 ? totalAmount / count : null
+  if (count < 2) return { count, avgDaysBetween: null, avgAmount, amountPerDay: null }
+  const dates = records.map((r) => r.date).sort()
+  const spanDays = Math.round((new Date(dates[count - 1]).getTime() - new Date(dates[0]).getTime()) / 86400000)
+  return {
+    count,
+    avgDaysBetween: spanDays > 0 ? spanDays / (count - 1) : null,
+    avgAmount,
+    amountPerDay: spanDays > 0 ? totalAmount / spanDays : null,
+  }
+}
+
 export interface MonthlyBucket {
   key: string
   fuel: number
@@ -191,7 +238,8 @@ export interface MonthlyBucket {
   total: number
 }
 
-export const monthlySpend = (d: AllData): MonthlyBucket[] => {
+/** Месечни суми; при подадени from/to връща непрекъсната поредица от месеци (празните са с нули). */
+export const monthlySpend = (d: AllData, from?: string, to?: string): MonthlyBucket[] => {
   const map = new Map<string, MonthlyBucket>()
   const get = (k: string) => {
     if (!map.has(k)) map.set(k, { key: k, fuel: 0, service: 0, expense: 0, income: 0, total: 0 })
@@ -211,6 +259,18 @@ export const monthlySpend = (d: AllData): MonthlyBucket[] => {
   d.incomes.forEach((i) => {
     get(monthKey(i.date)).income += i.amount
   })
+  if (from && to && from <= to) {
+    const out: MonthlyBucket[] = []
+    let [y, m] = monthKey(from).split('-').map(Number)
+    const end = monthKey(to)
+    for (let key = monthKey(from); key <= end; ) {
+      out.push(map.get(key) ?? { key, fuel: 0, service: 0, expense: 0, income: 0, total: 0 })
+      m++
+      if (m > 12) { m = 1; y++ }
+      key = `${y}-${String(m).padStart(2, '0')}`
+    }
+    return out
+  }
   return [...map.values()].sort((a, b) => a.key.localeCompare(b.key))
 }
 
