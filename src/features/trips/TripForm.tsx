@@ -5,6 +5,8 @@ import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { todayISO, todayTimeISO, km, money, num, toNumStr } from '../../lib/format'
 import { computeStats } from '../../lib/calculations'
+import { currentCity } from '../../lib/geo'
+import { IconPin } from '../../components/Layout/icons'
 import type { Trip } from '../../types'
 import styles from './TripForm.module.css'
 
@@ -37,6 +39,16 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
   const [reason, setReason] = useState(edit?.reason ?? '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
 
+  const [locating, setLocating] = useState<'origin' | 'destination' | null>(null)
+
+  const fillFromLocation = (target: 'origin' | 'destination') => {
+    setLocating(target)
+    currentCity().then((city) => {
+      if (city) (target === 'origin' ? setOrigin : setDestination)(city)
+      setLocating(null)
+    })
+  }
+
   const distance = Math.max(0, Number(endOdometer) - Number(startOdometer))
   const total = distance * (Number(costPerKm) || 0)
   const valid = origin.trim() !== '' && destination.trim() !== '' && distance > 0
@@ -68,11 +80,21 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
       onClose={onClose}
       footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeTrip(edit.id); onClose() } : undefined} deleteMsg="Изтриване на маршрута?" color="#5f7079" />}
     >
-      <Field label="Произход (A)">
-        <input className={inputClass} value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="напр. Бургас" />
+      <Field label="Начална точка">
+        <div className={styles.locWrap}>
+          <input className={inputClass} value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="напр. Бургас" />
+          <button type="button" className={styles.locBtn} title="Попълни от локацията" disabled={locating !== null} onClick={() => fillFromLocation('origin')}>
+            {locating === 'origin' ? <span className={styles.locSpin} /> : <IconPin width={18} height={18} />}
+          </button>
+        </div>
       </Field>
-      <Field label="Дестинация (B)">
-        <input className={inputClass} value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="напр. София" />
+      <Field label="Крайна точка">
+        <div className={styles.locWrap}>
+          <input className={inputClass} value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="напр. София" />
+          <button type="button" className={styles.locBtn} title="Попълни от локацията" disabled={locating !== null} onClick={() => fillFromLocation('destination')}>
+            {locating === 'destination' ? <span className={styles.locSpin} /> : <IconPin width={18} height={18} />}
+          </button>
+        </div>
       </Field>
       <Row>
         <Field label="Дата">

@@ -135,7 +135,7 @@ export function ReportsPage() {
         </button>
 
         <div className={styles.tabs}>
-          {([['general', 'Общ'], ['fuel', 'Гориво'], ['expense', 'Разходи'], ['income', 'Приход'], ['service', 'Услуга']] as [SubTab, string][]).map(
+          {([['general', 'Общ'], ['fuel', 'Гориво'], ['expense', 'Разходи'], ['income', 'Приход'], ['service', 'Сервиз']] as [SubTab, string][]).map(
             ([id, label]) => (
               <button key={id} className={tab === id ? styles.tActive : ''} onClick={() => setTab(id)}>{label}</button>
             )
@@ -174,7 +174,7 @@ function General({ stats, monthly }: { stats: Stats; monthly: MonthlyRow[] }) {
       <MonthlyChart monthly={monthly} stacked title="Разходи по месеци" />
       <Donut title="Сравнение на разходите" buckets={[
         { name: 'Гориво', total: stats.totalFuelCost },
-        { name: 'Услуги', total: service },
+        { name: 'Сервиз', total: service },
         { name: 'Други', total: expense },
       ].filter((b) => b.total > 0)} />
     </>
@@ -328,21 +328,21 @@ function Service({ data, monthly }: { data: AllData; monthly: MonthlyRow[] }) {
     <>
       <div className={styles.cards}>
         <Card label="За сервиз" value={money(total)} accent color="#7a5c4a" Icon={IconWrench} />
-        <Card label="Брой услуги" value={String(list.length)} />
+        <Card label="Брой посещения" value={String(list.length)} />
       </div>
       {rec.count > 0 && (
         <div className={`card ${styles.tank}`}>
-          <div className={styles.tankHead}>Услуги</div>
+          <div className={styles.tankHead}>Сервиз</div>
           <div className={styles.tankGrid2}>
-            <Mini label="Брой услуги" value={String(rec.count)} />
-            <Mini label="Ср. дни между услугите" value={rec.avgDaysBetween !== null ? num(rec.avgDaysBetween, 1) : '—'} />
-            <Mini label="Ср. сума на услуга" value={rec.avgAmount !== null ? money(rec.avgAmount) : '—'} />
+            <Mini label="Брой посещения" value={String(rec.count)} />
+            <Mini label="Ср. дни между посещенията" value={rec.avgDaysBetween !== null ? num(rec.avgDaysBetween, 1) : '—'} />
+            <Mini label="Ср. сума на посещение" value={rec.avgAmount !== null ? money(rec.avgAmount) : '—'} />
             <Mini label="Разход на ден" value={rec.amountPerDay !== null ? money(rec.amountPerDay) : '—'} />
           </div>
         </div>
       )}
-      <MonthlyChart monthly={monthly} dataKey="service" title="Услуги по месеци" color="#7a5c4a" label="Услуги" />
-      {cats.length > 0 && <Donut title="По вид услуга" buckets={cats} />}
+      <MonthlyChart monthly={monthly} dataKey="service" title="Сервиз по месеци" color="#7a5c4a" label="Сервиз" />
+      {cats.length > 0 && <Donut title="По вид дейност" buckets={cats} />}
     </>
   )
 }
@@ -395,7 +395,7 @@ function MonthlyChart({ monthly, stacked, dataKey, title, color, label }: {
             {stacked ? (
               <>
                 <Bar dataKey="fuel" name="Гориво" stackId="a" fill="var(--accent)" />
-                <Bar dataKey="service" name="Услуги" stackId="a" fill="#7a5c4a" />
+                <Bar dataKey="service" name="Сервиз" stackId="a" fill="#7a5c4a" />
                 <Bar dataKey="expense" name="Разходи" stackId="a" fill="#ec5b53" radius={[5, 5, 0, 0]} />
               </>
             ) : (
