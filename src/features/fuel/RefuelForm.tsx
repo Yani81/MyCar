@@ -3,7 +3,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, selectClass, Toggle } from '../../components/ui/Field'
 import { useStore } from '../../store/useStore'
 import { todayISO, km, toNumStr } from '../../lib/format'
-import { FUEL_LABELS, FUEL_UNITS, type Refuel, type FuelType } from '../../types'
+import { FUEL_LABELS, FUEL_UNITS, ENTRY_COLORS, type Refuel, type FuelType } from '../../types'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
 import { processReceipt } from '../../lib/image'
@@ -132,9 +132,9 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
     <Modal
       open
       title={edit ? 'Редакция на зареждане' : 'Ново зареждане'}
-      color="#f5821f"
+      color={ENTRY_COLORS.refuel}
       onClose={onClose}
-      footer={<FormFooter valid={valid} edit={!!edit} color="#f5821f" onSubmit={submit} onDelete={edit ? () => { removeRefuel(edit.id); onClose() } : undefined} deleteMsg="Изтриване на зареждането?" />}
+      footer={<FormFooter valid={valid} edit={!!edit} color={ENTRY_COLORS.refuel} onSubmit={submit} onDelete={edit ? () => { removeRefuel(edit.id); onClose() } : undefined} deleteMsg="Изтриване на зареждането?" />}
     >
       <Row>
         <Field label="Дата">
@@ -231,7 +231,7 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
             title="Засечи текуща локация"
           >📍</button>
         </div>
-        {locError && <span style={{ fontSize: 11, color: 'var(--red, #ec5b53)' }}>{locError}</span>}
+        {locError && <span style={{ fontSize: 11, color: 'var(--red)' }}>{locError}</span>}
       </Field>
       <Toggle checked={missedFill} onChange={setMissedFill} label="Пропуснах предходно зареждане" />
     </Modal>

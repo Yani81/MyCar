@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { Modal } from '../../components/ui/Modal'
 import { inputClass } from '../../components/ui/Field'
 import { dateShort } from '../../lib/format'
+import { ENTRY_COLORS } from '../../types'
 
 export function ChecksPage({ go }: { go: (t: Tab) => void }) {
   const v = useActiveVehicle()
@@ -137,7 +138,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
     {
       key: 'go' as const,
       title: 'Гражданска отговорност',
-      color: '#ec5b53',
+      color: ENTRY_COLORS.expense,
       loading: goLoading,
       onCheck: checkGO,
       formatSub: (r: typeof checks.go) =>
@@ -146,7 +147,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
     {
       key: 'gtp' as const,
       title: 'Технически преглед',
-      color: '#7a5c4a',
+      color: ENTRY_COLORS.service,
       loading: gtpLoading,
       onCheck: checkGTP,
       formatSub: (r: typeof checks.gtp) =>
@@ -155,7 +156,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
     {
       key: 'vignette' as const,
       title: 'Електронна винетка',
-      color: '#1bb3bf',
+      color: 'var(--brand)',
       loading: vignetteLoading,
       onCheck: checkVignette,
       formatSub: (r: typeof checks.vignette) =>
@@ -164,7 +165,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
     {
       key: 'delict' as const,
       title: 'Глоби BGToll',
-      color: '#c2185b',
+      color: ENTRY_COLORS.odometer,
       loading: delictLoading,
       onCheck: () => setShowEgnModal(true),
       formatSub: (r: typeof checks.delict) =>
@@ -226,14 +227,14 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
         open={showEgnModal}
         title="Провери глоби BGToll"
         onClose={() => setShowEgnModal(false)}
-        color="#c2185b"
+        color={ENTRY_COLORS.odometer}
         footer={
           <button
             style={{
               flex: 1,
               padding: 15,
               borderRadius: 14,
-              background: egnInput.trim() ? '#c2185b' : 'var(--surface-3)',
+              background: egnInput.trim() ? ENTRY_COLORS.odometer : 'var(--surface-3)',
               color: egnInput.trim() ? '#fff' : 'var(--faint)',
               fontWeight: 700,
             }}

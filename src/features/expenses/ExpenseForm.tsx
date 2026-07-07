@@ -5,7 +5,7 @@ import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore } from '../../store/useStore'
 import { todayISO, todayDateISO, toNumStr } from '../../lib/format'
 import { advanceReminderPatch } from '../../lib/calculations'
-import { EXPENSE_CATEGORIES, type Expense, type ExpenseKind, type ReminderBasis } from '../../types'
+import { EXPENSE_CATEGORIES, ENTRY_COLORS, type Expense, type ExpenseKind, type ReminderBasis } from '../../types'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
 import { processReceipt } from '../../lib/image'
 import styles from './ExpenseForm.module.css'
@@ -269,7 +269,7 @@ export function ExpenseForm({
   }
 
   const title0 = kind === 'service' ? 'услуга / сервиз' : 'разход'
-  const formColor = kind === 'service' ? '#7a5c4a' : '#ec5b53'
+  const formColor = kind === 'service' ? ENTRY_COLORS.service : ENTRY_COLORS.expense
 
   const receiptSection = (
     <>

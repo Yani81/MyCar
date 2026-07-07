@@ -279,20 +279,20 @@
   color: var(--accent);
 }
 .service {
-  background: rgba(139, 107, 74, 0.18);
-  color: #b08458;
+  background: rgba(120, 113, 108, 0.18);
+  color: var(--c-service);
 }
 .exp {
-  background: rgba(255, 92, 92, 0.16);
-  color: #ff5c5c;
+  background: rgba(225, 29, 72, 0.14);
+  color: var(--c-expense);
 }
 .income {
   background: var(--green-soft);
   color: var(--green);
 }
 .trip {
-  background: rgba(91, 168, 255, 0.16);
-  color: #5ba8ff;
+  background: rgba(2, 132, 199, 0.15);
+  color: var(--c-trip);
 }
 .actInfo {
   display: flex;

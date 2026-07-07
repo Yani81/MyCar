@@ -4,7 +4,7 @@ import { Field, Row, inputClass, selectClass } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore } from '../../store/useStore'
 import { todayISO, todayTimeISO, toNumStr } from '../../lib/format'
-import { INCOME_CATEGORIES, type Income } from '../../types'
+import { INCOME_CATEGORIES, ENTRY_COLORS, type Income } from '../../types'
 
 export function IncomeForm({ vehicleId, edit, onClose }: { vehicleId: string; edit: Income | null; onClose: () => void }) {
   const addIncome = useStore((s) => s.addIncome)
@@ -38,9 +38,9 @@ export function IncomeForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
     <Modal
       open
       title={edit ? 'Редакция на приход' : 'Нов приход'}
-      color="#3f9c35"
+      color={ENTRY_COLORS.income}
       onClose={onClose}
-      footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeIncome(edit.id); onClose() } : undefined} deleteMsg="Изтриване на прихода?" color="#3f9c35" />}
+      footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeIncome(edit.id); onClose() } : undefined} deleteMsg="Изтриване на прихода?" color={ENTRY_COLORS.income} />}
     >
       <Field label="Категория">
         <select className={selectClass} value={category} onChange={(e) => setCategory(e.target.value)}>

@@ -137,16 +137,16 @@ export function exportVehiclePDF(data: ExportData) {
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,Arial,sans-serif;font-size:11px;color:#111;padding:0}
-  .toolbar{background:#f0fafb;border-bottom:2px solid #1bb3bf;padding:12px 20px;display:flex;align-items:center;gap:16px;position:sticky;top:0}
-  .toolbar h1{font-size:16px;color:#1bb3bf;font-weight:700;flex:1}
+  .toolbar{background:#f2f2fc;border-bottom:2px solid #5b5bd6;padding:12px 20px;display:flex;align-items:center;gap:16px;position:sticky;top:0}
+  .toolbar h1{font-size:16px;color:#5b5bd6;font-weight:700;flex:1}
   .toolbar p{font-size:11px;color:#666;margin-top:2px}
-  .print-btn{background:#1bb3bf;color:#fff;border:none;padding:9px 20px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer}
-  .print-btn:hover{background:#149aa5}
+  .print-btn{background:#5b5bd6;color:#fff;border:none;padding:9px 20px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer}
+  .print-btn:hover{background:#4a4ac0}
   .content{padding:20px}
   section{margin-bottom:28px;break-inside:avoid}
-  h2{font-size:13px;font-weight:700;margin-bottom:8px;color:#1bb3bf;border-left:3px solid #1bb3bf;padding-left:8px;text-transform:uppercase;letter-spacing:.04em}
+  h2{font-size:13px;font-weight:700;margin-bottom:8px;color:#5b5bd6;border-left:3px solid #5b5bd6;padding-left:8px;text-transform:uppercase;letter-spacing:.04em}
   table{width:100%;border-collapse:collapse}
-  th{background:#f0fafb;font-weight:600;text-align:left;padding:5px 8px;border:1px solid #c8e8ea;font-size:10px;white-space:nowrap}
+  th{background:#f2f2fc;font-weight:600;text-align:left;padding:5px 8px;border:1px solid #cdcdf0;font-size:10px;white-space:nowrap}
   td{padding:4px 8px;border:1px solid #e8e8e8;vertical-align:top}
   tr:nth-child(even) td{background:#fafafa}
   @media print{

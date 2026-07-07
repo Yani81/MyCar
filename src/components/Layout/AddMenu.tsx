@@ -1,16 +1,17 @@
 import styles from './AddMenu.module.css'
 import { useUI, type FormOpen } from '../../store/useUI'
+import { ENTRY_COLORS } from '../../types'
 import { Modal } from '../ui/Modal'
 import { IconFuel, IconWrench, IconBell, IconIncome, IconRoute, IconOdometer } from './icons'
 
 const ITEMS: { type: FormOpen['type']; label: string; color: string; Icon: typeof IconFuel }[] = [
-  { type: 'refuel', label: 'Зареждане', color: '#f5821f', Icon: IconFuel },
-  { type: 'expense', label: 'Разход', color: '#ec5b53', Icon: IconWrench },
-  { type: 'service', label: 'Услуга / сервиз', color: '#7a5c4a', Icon: IconWrench },
-  { type: 'income', label: 'Приход', color: '#3f9c35', Icon: IconIncome },
-  { type: 'trip', label: 'Маршрут', color: '#5f7079', Icon: IconRoute },
-  { type: 'odometer', label: 'Показание', color: '#c2185b', Icon: IconOdometer },
-  { type: 'reminder', label: 'Напомняне', color: '#7e57c2', Icon: IconBell },
+  { type: 'refuel', label: 'Зареждане', color: ENTRY_COLORS.refuel, Icon: IconFuel },
+  { type: 'expense', label: 'Разход', color: ENTRY_COLORS.expense, Icon: IconWrench },
+  { type: 'service', label: 'Услуга / сервиз', color: ENTRY_COLORS.service, Icon: IconWrench },
+  { type: 'income', label: 'Приход', color: ENTRY_COLORS.income, Icon: IconIncome },
+  { type: 'trip', label: 'Маршрут', color: ENTRY_COLORS.trip, Icon: IconRoute },
+  { type: 'odometer', label: 'Показание', color: ENTRY_COLORS.odometer, Icon: IconOdometer },
+  { type: 'reminder', label: 'Напомняне', color: ENTRY_COLORS.reminder, Icon: IconBell },
 ]
 
 export function AddMenu() {

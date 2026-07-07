@@ -7,7 +7,7 @@ import { todayISO, todayTimeISO, km, money, num, toNumStr } from '../../lib/form
 import { computeStats } from '../../lib/calculations'
 import { currentCity } from '../../lib/geo'
 import { IconPin } from '../../components/Layout/icons'
-import type { Trip } from '../../types'
+import { ENTRY_COLORS, type Trip } from '../../types'
 import styles from './TripForm.module.css'
 
 export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit: Trip | null; onClose: () => void }) {
@@ -76,9 +76,9 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
     <Modal
       open
       title={edit ? 'Редакция на маршрут' : 'Нов маршрут'}
-      color="#5f7079"
+      color={ENTRY_COLORS.trip}
       onClose={onClose}
-      footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeTrip(edit.id); onClose() } : undefined} deleteMsg="Изтриване на маршрута?" color="#5f7079" />}
+      footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeTrip(edit.id); onClose() } : undefined} deleteMsg="Изтриване на маршрута?" color={ENTRY_COLORS.trip} />}
     >
       <Field label="Начална точка">
         <div className={styles.locWrap}>

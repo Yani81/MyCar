@@ -3,7 +3,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass, Segmented } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore } from '../../store/useStore'
-import type { Reminder, ReminderBasis } from '../../types'
+import { ENTRY_COLORS, type Reminder, type ReminderBasis } from '../../types'
 
 export function ReminderForm({ vehicleId, edit, onClose }: { vehicleId: string; edit: Reminder | null; onClose: () => void }) {
   const addReminder = useStore((s) => s.addReminder)
@@ -42,9 +42,9 @@ export function ReminderForm({ vehicleId, edit, onClose }: { vehicleId: string; 
     <Modal
       open
       title={edit ? 'Редакция на напомняне' : 'Ново напомняне'}
-      color="#7e57c2"
+      color={ENTRY_COLORS.reminder}
       onClose={onClose}
-      footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeReminder(edit.id); onClose() } : undefined} deleteMsg="Изтриване на напомнянето?" color="#7e57c2" />}
+      footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeReminder(edit.id); onClose() } : undefined} deleteMsg="Изтриване на напомнянето?" color={ENTRY_COLORS.reminder} />}
     >
       <Field label="Какво">
         <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. Смяна на масло" />

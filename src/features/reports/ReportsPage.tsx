@@ -9,7 +9,7 @@ import {
   computeStats, computeConsumption, monthlySpend, expensesByCategory, incomesByCategory,
   refuelsByStation, fuelPriceTrend, refuelIntervalStats, recordIntervalStats, type AllData, type NamedBucket,
 } from '../../lib/calculations'
-import { consUnitLabel, FUEL_UNITS } from '../../types'
+import { consUnitLabel, FUEL_UNITS, ENTRY_COLORS } from '../../types'
 import { money, num, numFixed, monthLabel, dateShort, km } from '../../lib/format'
 import { IconIncome, IconRoute, IconWrench, IconFuel, IconChart } from '../../components/Layout/icons'
 import { Modal } from '../../components/ui/Modal'
@@ -35,7 +35,7 @@ function isoToBg(iso: string): string {
 type Stats = ReturnType<typeof computeStats>
 interface MonthlyRow { key: string; label: string; fuel: number; service: number; expense: number; income: number; total: number }
 
-const DONUT_COLORS = ['#f5821f', '#5f7079', '#3f9c35', '#ec5b53', '#7e57c2', '#c2185b', '#7a5c4a', '#22d3ee']
+const DONUT_COLORS = [ENTRY_COLORS.refuel, ENTRY_COLORS.trip, ENTRY_COLORS.income, ENTRY_COLORS.expense, ENTRY_COLORS.reminder, ENTRY_COLORS.odometer, ENTRY_COLORS.service, '#22d3ee']
 const tooltipStyle = { background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--text)' }
 
 export function ReportsPage() {
@@ -167,9 +167,9 @@ function General({ stats, monthly }: { stats: Stats; monthly: MonthlyRow[] }) {
     <>
       <div className={styles.cards}>
         <Card label="Баланс" value={money(stats.balance)} perDay={stats.daysSpan} amount={stats.balance} dist={stats.totalDistance} color="var(--brand)" Icon={IconIncome} />
-        <Card label="Разстояние" value={km(stats.totalDistance)} color="#5f7079" Icon={IconRoute} />
-        <Card label="Разходи" value={money(stats.totalCost)} perDay={stats.daysSpan} amount={stats.totalCost} dist={stats.totalDistance} accent color="#f5821f" Icon={IconWrench} />
-        <Card label="Приход" value={money(stats.totalIncome)} color="#3f9c35" Icon={IconIncome} />
+        <Card label="Разстояние" value={km(stats.totalDistance)} color={ENTRY_COLORS.trip} Icon={IconRoute} />
+        <Card label="Разходи" value={money(stats.totalCost)} perDay={stats.daysSpan} amount={stats.totalCost} dist={stats.totalDistance} accent color={ENTRY_COLORS.refuel} Icon={IconWrench} />
+        <Card label="Приход" value={money(stats.totalIncome)} color={ENTRY_COLORS.income} Icon={IconIncome} />
       </div>
       <MonthlyChart monthly={monthly} stacked title="Разходи по месеци" />
       <Donut title="Сравнение на разходите" buckets={[
@@ -198,8 +198,8 @@ function Fuel({ data, stats, monthly }: { data: AllData; stats: Stats; monthly: 
   return (
     <>
       <div className={styles.cards}>
-        <Card label="За гориво" value={money(stats.totalFuelCost)} color="#f5821f" Icon={IconFuel} />
-        <Card label="Среден разход" value={stats.avgConsumption !== null ? numFixed(stats.avgConsumption) : '—'} unit={consUnitLabel(mainFuel)} accent color="#f5821f" Icon={IconChart} />
+        <Card label="За гориво" value={money(stats.totalFuelCost)} color={ENTRY_COLORS.refuel} Icon={IconFuel} />
+        <Card label="Среден разход" value={stats.avgConsumption !== null ? numFixed(stats.avgConsumption) : '—'} unit={consUnitLabel(mainFuel)} accent color={ENTRY_COLORS.refuel} Icon={IconChart} />
         <Card label={`Ср. цена/${mainFuel === 'electric' ? 'kWh' : 'литър'}`} value={stats.avgPricePerLiter !== null ? money(stats.avgPricePerLiter) : '—'} />
         <Card label="Гориво / км" value={stats.fuelCostPerKm !== null ? money(stats.fuelCostPerKm) : '—'} />
       </div>
@@ -237,7 +237,7 @@ function Fuel({ data, stats, monthly }: { data: AllData; stats: Stats; monthly: 
                 <XAxis dataKey="x" tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} tickFormatter={(v: number) => v.toFixed(1)} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => [`${val.toFixed(2)} ${consUnitLabel(t.fuel)}`, 'Разход']} labelStyle={{ color: 'var(--muted)' }} />
-                <Line type="monotone" dataKey="value" stroke="#f5821f" strokeWidth={2.5} dot={{ r: 2.5, fill: '#f5821f' }} />
+                <Line type="monotone" dataKey="value" stroke={ENTRY_COLORS.refuel} strokeWidth={2.5} dot={{ r: 2.5, fill: ENTRY_COLORS.refuel }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -273,7 +273,7 @@ function Expense({ data, stats, monthly }: { data: AllData; stats: Stats; monthl
   return (
     <>
       <div className={styles.cards}>
-        <Card label="Други разходи" value={money(total)} perDay={stats.daysSpan} amount={total} dist={stats.totalDistance} accent color="#ec5b53" Icon={IconWrench} />
+        <Card label="Други разходи" value={money(total)} perDay={stats.daysSpan} amount={total} dist={stats.totalDistance} accent color={ENTRY_COLORS.expense} Icon={IconWrench} />
         <Card label="Брой записи" value={String(list.length)} />
       </div>
       {rec.count > 0 && (
@@ -287,7 +287,7 @@ function Expense({ data, stats, monthly }: { data: AllData; stats: Stats; monthl
           </div>
         </div>
       )}
-      <MonthlyChart monthly={monthly} dataKey="expense" title="Разходи по месеци" color="#ec5b53" label="Разходи" />
+      <MonthlyChart monthly={monthly} dataKey="expense" title="Разходи по месеци" color={ENTRY_COLORS.expense} label="Разходи" />
       {cats.length > 0 && <Donut title="По категории" buckets={cats} />}
     </>
   )
@@ -299,7 +299,7 @@ function IncomeTab({ data, stats, monthly }: { data: AllData; stats: Stats; mont
   return (
     <>
       <div className={styles.cards}>
-        <Card label="Общо приход" value={money(stats.totalIncome)} accent color="#3f9c35" Icon={IconIncome} />
+        <Card label="Общо приход" value={money(stats.totalIncome)} accent color={ENTRY_COLORS.income} Icon={IconIncome} />
         <Card label="Баланс" value={money(stats.balance)} />
       </div>
       {rec.count > 0 && (
@@ -327,7 +327,7 @@ function Service({ data, monthly }: { data: AllData; monthly: MonthlyRow[] }) {
   return (
     <>
       <div className={styles.cards}>
-        <Card label="За сервиз" value={money(total)} accent color="#7a5c4a" Icon={IconWrench} />
+        <Card label="За сервиз" value={money(total)} accent color={ENTRY_COLORS.service} Icon={IconWrench} />
         <Card label="Брой посещения" value={String(list.length)} />
       </div>
       {rec.count > 0 && (
@@ -341,7 +341,7 @@ function Service({ data, monthly }: { data: AllData; monthly: MonthlyRow[] }) {
           </div>
         </div>
       )}
-      <MonthlyChart monthly={monthly} dataKey="service" title="Сервиз по месеци" color="#7a5c4a" label="Сервиз" />
+      <MonthlyChart monthly={monthly} dataKey="service" title="Сервиз по месеци" color={ENTRY_COLORS.service} label="Сервиз" />
       {cats.length > 0 && <Donut title="По вид дейност" buckets={cats} />}
     </>
   )
@@ -395,8 +395,8 @@ function MonthlyChart({ monthly, stacked, dataKey, title, color, label }: {
             {stacked ? (
               <>
                 <Bar dataKey="fuel" name="Гориво" stackId="a" fill="var(--accent)" />
-                <Bar dataKey="service" name="Сервиз" stackId="a" fill="#7a5c4a" />
-                <Bar dataKey="expense" name="Разходи" stackId="a" fill="#ec5b53" radius={[5, 5, 0, 0]} />
+                <Bar dataKey="service" name="Сервиз" stackId="a" fill={ENTRY_COLORS.service} />
+                <Bar dataKey="expense" name="Разходи" stackId="a" fill={ENTRY_COLORS.expense} radius={[5, 5, 0, 0]} />
               </>
             ) : (
               <Bar dataKey={(dataKey as string) ?? 'total'} name={label ?? 'Общо'} fill={color ?? 'var(--accent)'} radius={[5, 5, 0, 0]} />

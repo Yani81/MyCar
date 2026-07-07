@@ -3,19 +3,19 @@ import styles from './HistoryPage.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { useUI, type FormOpen, type HistoryFilter } from '../../store/useUI'
 import { money, km, dateShort, timeShort } from '../../lib/format'
-import { FUEL_LABELS, FUEL_UNITS, consUnitLabel, type Refuel, type Expense, type Income, type Trip, type OdometerReading } from '../../types'
+import { FUEL_LABELS, FUEL_UNITS, consUnitLabel, ENTRY_COLORS, type Refuel, type Expense, type Income, type Trip, type OdometerReading } from '../../types'
 import { IconWrench, IconIncome, IconRoute, IconOdometer } from '../../components/Layout/icons'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
 import { computeConsumption, sortRefuels } from '../../lib/calculations'
 
 const FILTERS: { value: HistoryFilter | null; label: string; color: string }[] = [
   { value: null,        label: 'Всички',  color: 'var(--brand)' },
-  { value: 'refuel',   label: 'Гориво',  color: '#f5821f' },
-  { value: 'expense',  label: 'Разход',  color: '#ec5b53' },
-  { value: 'service',  label: 'Сервиз',  color: '#7a5c4a' },
-  { value: 'income',   label: 'Приход',  color: '#3f9c35' },
-  { value: 'trip',     label: 'Маршрут', color: '#5f7079' },
-  { value: 'odometer', label: 'Км',      color: '#c2185b' },
+  { value: 'refuel',   label: 'Гориво',  color: ENTRY_COLORS.refuel },
+  { value: 'expense',  label: 'Разход',  color: ENTRY_COLORS.expense },
+  { value: 'service',  label: 'Сервиз',  color: ENTRY_COLORS.service },
+  { value: 'income',   label: 'Приход',  color: ENTRY_COLORS.income },
+  { value: 'trip',     label: 'Маршрут', color: ENTRY_COLORS.trip },
+  { value: 'odometer', label: 'Км',      color: ENTRY_COLORS.odometer },
 ]
 
 interface Item {
@@ -273,7 +273,7 @@ export function HistoryPage() {
     }
 
     vehicleRefuels.forEach(r => items.push({
-      id: r.id, date: r.date, odo: r.odometer, color: '#f5821f',
+      id: r.id, date: r.date, odo: r.odometer, color: ENTRY_COLORS.refuel,
       title: multi ? FUEL_LABELS[r.fuelType] : 'Зареждане',
       amount: r.total, positive: false,
       receiptImage: r.receiptImage,
@@ -284,7 +284,7 @@ export function HistoryPage() {
     }))
 
     expenses.filter(e => e.vehicleId === v.id).forEach(e => items.push({
-      id: e.id, date: e.date, odo: e.odometer ?? 0, color: e.kind === 'service' ? '#7a5c4a' : '#ec5b53',
+      id: e.id, date: e.date, odo: e.odometer ?? 0, color: e.kind === 'service' ? ENTRY_COLORS.service : ENTRY_COLORS.expense,
       title: e.title || e.category,
       amount: e.cost, positive: false,
       receiptImage: e.receiptImage,
@@ -293,7 +293,7 @@ export function HistoryPage() {
     }))
 
     incomes.filter(i => i.vehicleId === v.id).forEach(i => items.push({
-      id: i.id, date: i.date, odo: i.odometer ?? 0, color: '#3f9c35',
+      id: i.id, date: i.date, odo: i.odometer ?? 0, color: ENTRY_COLORS.income,
       title: i.category,
       amount: i.amount, positive: true,
       open: { type: 'income', entry: i },
@@ -301,7 +301,7 @@ export function HistoryPage() {
     }))
 
     trips.filter(t => t.vehicleId === v.id).forEach(t => items.push({
-      id: t.id, date: t.date, odo: t.endOdometer, color: '#5f7079',
+      id: t.id, date: t.date, odo: t.endOdometer, color: ENTRY_COLORS.trip,
       title: `${t.origin} → ${t.destination}`,
       amount: t.total > 0 ? t.total : null, positive: false,
       open: { type: 'trip', entry: t },
@@ -309,7 +309,7 @@ export function HistoryPage() {
     }))
 
     readings.filter(r => r.vehicleId === v.id).forEach(r => items.push({
-      id: r.id, date: r.date, odo: r.odometer, color: '#c2185b',
+      id: r.id, date: r.date, odo: r.odometer, color: ENTRY_COLORS.odometer,
       title: 'Показание',
       amount: null, positive: false,
       open: { type: 'odometer', entry: r },

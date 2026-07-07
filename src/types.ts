@@ -148,6 +148,17 @@ export const INCOME_CATEGORIES = ['Превоз', 'Споделено пътув
 /** Типове записи за централното меню и историята */
 export type EntryType = 'refuel' | 'expense' | 'income' | 'service' | 'trip' | 'odometer' | 'reminder'
 
+/** Цветове по тип запис (палитра „Индиго", еднакви за двете теми) */
+export const ENTRY_COLORS: Record<EntryType, string> = {
+  refuel: '#d97706',
+  expense: '#e11d48',
+  service: '#78716c',
+  income: '#059669',
+  trip: '#0284c7',
+  odometer: '#db2777',
+  reminder: '#7c3aed',
+}
+
 export interface VehicleCheckResult {
   valid: boolean
   validUntil?: string

@@ -5,7 +5,7 @@ import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { computeStats } from '../../lib/calculations'
 import { todayISO, todayTimeISO, km } from '../../lib/format'
-import type { OdometerReading } from '../../types'
+import { ENTRY_COLORS, type OdometerReading } from '../../types'
 
 export function OdometerForm({ vehicleId, edit, onClose }: { vehicleId: string; edit: OdometerReading | null; onClose: () => void }) {
   const v = useActiveVehicle()
@@ -46,9 +46,9 @@ export function OdometerForm({ vehicleId, edit, onClose }: { vehicleId: string; 
     <Modal
       open
       title={edit ? 'Редакция на показание' : 'Ново показание'}
-      color="#c2185b"
+      color={ENTRY_COLORS.odometer}
       onClose={onClose}
-      footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeReading(edit.id); onClose() } : undefined} deleteMsg="Изтриване на показанието?" color="#c2185b" />}
+      footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeReading(edit.id); onClose() } : undefined} deleteMsg="Изтриване на показанието?" color={ENTRY_COLORS.odometer} />}
     >
       <Row>
         <Field label="Дата">
