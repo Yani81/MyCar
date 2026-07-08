@@ -246,6 +246,55 @@
 .exportBtn:active {
   background: var(--surface-3);
 }
+.setRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  text-align: left;
+}
+.setRow:active {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+.setIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.setInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.setLabel {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+}
+.setSub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.setChev {
+  color: var(--faint);
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+.notifStatus {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
 .themeBlock {
   margin-top: 20px;
   padding-top: 16px;

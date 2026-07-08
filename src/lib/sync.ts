@@ -11,6 +11,7 @@ export type StoreData = {
   reminders: Reminder[]
   activeVehicleId: string | null
   theme: 'auto' | 'light' | 'dark'
+  notifyDaysAhead?: number
 }
 
 /** updated_at на последната версия, която този клиент е чел или записал. */
@@ -92,7 +93,7 @@ export async function refreshFromCloudIfNewer(): Promise<void> {
   const local: StoreData = {
     vehicles: s.vehicles, refuels: s.refuels, expenses: s.expenses, incomes: s.incomes,
     trips: s.trips, readings: s.readings, reminders: s.reminders,
-    activeVehicleId: s.activeVehicleId, theme: s.theme,
+    activeVehicleId: s.activeVehicleId, theme: s.theme, notifyDaysAhead: s.notifyDaysAhead,
   }
   // Идентични данни (напр. нашият собствен запис) → не пипай store-а, за да не тръгне нов save
   if (JSON.stringify(local) === JSON.stringify(data.data)) return

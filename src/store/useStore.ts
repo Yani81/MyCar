@@ -28,9 +28,12 @@ interface State {
   reminders: Reminder[]
   activeVehicleId: string | null
   theme: Theme
+  /** Дни предварително за известия от напомнянията; 0 = изключени */
+  notifyDaysAhead: number
 
   loadCloudData: (data: StoreData) => void
   setTheme: (t: Theme) => void
+  setNotifyDaysAhead: (n: number) => void
   setActiveVehicle: (id: string) => void
 
   addVehicle: (v: Omit<Vehicle, 'id' | 'createdAt'>) => string
@@ -109,9 +112,11 @@ export const useStore = create<State>()(
         reminders: [],
         activeVehicleId: v0.id,
         theme: 'light',
+        notifyDaysAhead: 7,
 
         loadCloudData: (data) => set({ ...data }),
         setTheme: (theme) => set({ theme }),
+        setNotifyDaysAhead: (notifyDaysAhead) => set({ notifyDaysAhead }),
         setActiveVehicle: (id) => set({ activeVehicleId: id }),
 
         addVehicle: (v) => {

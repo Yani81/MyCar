@@ -32,6 +32,7 @@ export default function App() {
   const theme = useStore((s) => s.theme)
   const loadCloudData = useStore((s) => s.loadCloudData)
   const reminders = useStore((s) => s.reminders)
+  const notifyDaysAhead = useStore((s) => s.notifyDaysAhead)
   const { user, loading } = useAuth()
   const prevUserId = useRef<string | null>(null)
 
@@ -64,6 +65,7 @@ export default function App() {
           reminders: s.reminders,
           activeVehicleId: s.activeVehicleId,
           theme: s.theme,
+          notifyDaysAhead: s.notifyDaysAhead,
         })
       }
     })
@@ -79,7 +81,7 @@ export default function App() {
   }, [user?.id])
 
   useEffect(() => {
-    if (!user) return
+    if (!user || notifyDaysAhead <= 0) return
     if (sessionStorage.getItem('notif-checked')) return
     sessionStorage.setItem('notif-checked', '1')
 
@@ -88,7 +90,7 @@ export default function App() {
       if (r.done || !r.dueDate) return false
       const due = new Date(r.dueDate + 'T00:00:00').getTime()
       const days = Math.round((due - todayMs) / 86400000)
-      return days >= 0 && days <= 7
+      return days >= 0 && days <= notifyDaysAhead
     })
     if (!upcoming.length || !('Notification' in window)) return
 
@@ -113,7 +115,7 @@ export default function App() {
     } else if (Notification.permission !== 'denied') {
       Notification.requestPermission().then((p) => { if (p === 'granted') show() })
     }
-  }, [user?.id])
+  }, [user?.id, notifyDaysAhead])
 
   if (loading) {
     return (

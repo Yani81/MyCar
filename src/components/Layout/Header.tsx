@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import styles from './Header.module.css'
-import { IconChevron, IconCar, IconTrash, IconPencil, IconMenu, IconGear, IconUser, IconGauge, IconDocument } from './icons'
+import { IconChevron, IconCar, IconTrash, IconPencil, IconMenu, IconGear, IconUser, IconGauge, IconDocument, IconBell, IconMoon, IconDownload } from './icons'
 import { Modal } from '../ui/Modal'
 import { Field, Row, inputClass, selectClass, Segmented } from '../ui/Field'
 import { useStore, useActiveVehicle } from '../../store/useStore'
@@ -10,7 +10,7 @@ import { exportVehiclePDF, exportVehicleCSV } from '../../lib/export'
 import { downloadBackupJSON, parseBackupJSON } from '../../lib/backup'
 import type { Tab } from './BottomNav'
 
-type ModalView = 'none' | 'garage' | 'add' | 'edit' | 'settings' | 'account' | 'export'
+type ModalView = 'none' | 'garage' | 'add' | 'edit' | 'settings' | 'account' | 'export' | 'set-theme' | 'set-notify' | 'set-backup'
 
 const PLATE_MAP: Record<string, string> = {
   'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M',
@@ -38,8 +38,14 @@ export function Header({ go }: { go: (t: Tab) => void }) {
   const readings = useStore((s) => s.readings)
   const reminders = useStore((s) => s.reminders)
 
+  const notifyDaysAhead = useStore((s) => s.notifyDaysAhead)
+  const setNotifyDaysAhead = useStore((s) => s.setNotifyDaysAhead)
+
   const [modal, setModal] = useState<ModalView>('none')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [notifPermission, setNotifPermission] = useState(
+    () => ('Notification' in window ? Notification.permission : 'unsupported')
+  )
   const importInputRef = useRef<HTMLInputElement>(null)
 
   const menuItems: { label: string; Icon: typeof IconGauge; action: () => void }[] = [
@@ -243,23 +249,75 @@ export function Header({ go }: { go: (t: Tab) => void }) {
         <button className={styles.ghost} onClick={() => setModal('add')}>+ Нов автомобил</button>
       </Modal>
 
-      {/* ── Настройки ── */}
+      {/* ── Настройки (списък) ── */}
       <Modal open={modal === 'settings'} title="Настройки" onClose={() => setModal('none')}>
-        <div className={styles.themeBlock} style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
-          <span className={styles.themeLabel}>Тема</span>
+        <div className={styles.list}>
+          {([
+            { view: 'set-theme' as const, label: 'Тема', sub: theme === 'auto' ? 'Авто' : theme === 'light' ? 'Светла' : 'Тъмна', Icon: IconMoon },
+            { view: 'set-notify' as const, label: 'Известия', sub: notifyDaysAhead > 0 ? `${notifyDaysAhead} дни предварително` : 'Изключени', Icon: IconBell },
+            { view: 'set-backup' as const, label: 'Резервно копие', sub: 'JSON — изтегляне и възстановяване', Icon: IconDownload },
+          ]).map(({ view, label, sub, Icon }) => (
+            <button key={view} className={styles.setRow} onClick={() => setModal(view)}>
+              <span className={styles.setIcon}><Icon width={19} height={19} /></span>
+              <span className={styles.setInfo}>
+                <span className={styles.setLabel}>{label}</span>
+                <span className={styles.setSub}>{sub}</span>
+              </span>
+              <IconChevron width={16} height={16} className={styles.setChev} />
+            </button>
+          ))}
+        </div>
+      </Modal>
+
+      {/* ── Настройки → Тема ── */}
+      <Modal open={modal === 'set-theme'} title="Тема" onClose={() => setModal('settings')}>
+        <Segmented
+          value={theme}
+          onChange={setTheme}
+          options={[
+            { value: 'auto', label: 'Авто' },
+            { value: 'light', label: 'Светла' },
+            { value: 'dark', label: 'Тъмна' },
+          ]}
+        />
+      </Modal>
+
+      {/* ── Настройки → Известия ── */}
+      <Modal open={modal === 'set-notify'} title="Известия" onClose={() => setModal('settings')}>
+        <div className={styles.exportBlock} style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+          <span className={styles.exportLabel}>Известия за напомняния</span>
           <Segmented
-            value={theme}
-            onChange={setTheme}
+            value={String(notifyDaysAhead)}
+            onChange={(v) => setNotifyDaysAhead(Number(v))}
             options={[
-              { value: 'auto', label: 'Авто' },
-              { value: 'light', label: 'Светла' },
-              { value: 'dark', label: 'Тъмна' },
+              { value: '0', label: 'Изкл.' },
+              { value: '3', label: '3 дни' },
+              { value: '7', label: '7 дни' },
+              { value: '14', label: '14 дни' },
             ]}
           />
+          {notifyDaysAhead > 0 && (
+            <div className={styles.notifStatus}>
+              {notifPermission === 'unsupported' && 'Не се поддържа на това устройство (на iPhone работи само като инсталирано приложение).'}
+              {notifPermission === 'granted' && '✓ Известията са разрешени в браузъра.'}
+              {notifPermission === 'denied' && 'Блокирани са — разреши ги от настройките на браузъра.'}
+              {notifPermission === 'default' && (
+                <button
+                  className={styles.exportBtn}
+                  onClick={() => Notification.requestPermission().then(setNotifPermission)}
+                >
+                  Разреши известията
+                </button>
+              )}
+            </div>
+          )}
         </div>
+      </Modal>
 
-        <div className={styles.exportBlock}>
-          <span className={styles.exportLabel}>Резервно копие (всички автомобили)</span>
+      {/* ── Настройки → Резервно копие ── */}
+      <Modal open={modal === 'set-backup'} title="Резервно копие" onClose={() => setModal('settings')}>
+        <div className={styles.exportBlock} style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+          <span className={styles.exportLabel}>Всички автомобили и записи</span>
           <input
             ref={importInputRef}
             type="file"
