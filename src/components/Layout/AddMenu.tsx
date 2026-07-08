@@ -7,7 +7,7 @@ import { IconFuel, IconWrench, IconBell, IconIncome, IconRoute, IconOdometer } f
 const ITEMS: { type: FormOpen['type']; label: string; color: string; Icon: typeof IconFuel }[] = [
   { type: 'refuel', label: 'Зареждане', color: ENTRY_COLORS.refuel, Icon: IconFuel },
   { type: 'expense', label: 'Разход', color: ENTRY_COLORS.expense, Icon: IconWrench },
-  { type: 'service', label: 'Услуга / сервиз', color: ENTRY_COLORS.service, Icon: IconWrench },
+  { type: 'service', label: 'Ремонт', color: ENTRY_COLORS.service, Icon: IconWrench },
   { type: 'income', label: 'Приход', color: ENTRY_COLORS.income, Icon: IconIncome },
   { type: 'trip', label: 'Маршрут', color: ENTRY_COLORS.trip, Icon: IconRoute },
   { type: 'odometer', label: 'Показание', color: ENTRY_COLORS.odometer, Icon: IconOdometer },

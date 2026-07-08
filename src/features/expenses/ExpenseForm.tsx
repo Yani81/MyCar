@@ -301,7 +301,7 @@ export function ExpenseForm({
     onClose()
   }
 
-  const title0 = kind === 'service' ? 'услуга / сервиз' : 'разход'
+  const title0 = kind === 'service' ? 'ремонт' : 'разход'
   const formColor = kind === 'service' ? ENTRY_COLORS.service : ENTRY_COLORS.expense
 
   const receiptSection = (
@@ -362,7 +362,7 @@ export function ExpenseForm({
 
           {/* 2. Вид услуга + Сума */}
           <Row>
-            <Field label="Вид услуга">
+            <Field label="Вид ремонт">
               <select className={selectClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                 <option value="">— изберете —</option>
                 {cats.map((c) => (

@@ -58,7 +58,7 @@ export function exportVehicleCSV(data: ExportData) {
     lines.push(row('РАЗХОДИ'))
     lines.push(row('Дата', 'Км', 'Вид', 'Категория', 'Заглавие', 'Сума', 'Място', 'Бележки'))
     expenses.forEach((e) =>
-      lines.push(row(e.date, e.odometer ?? '', e.kind === 'service' ? 'Услуга' : 'Разход', e.category, e.title ?? '', e.cost, e.place ?? '', e.notes ?? ''))
+      lines.push(row(e.date, e.odometer ?? '', e.kind === 'service' ? 'Ремонт' : 'Разход', e.category, e.title ?? '', e.cost, e.place ?? '', e.notes ?? ''))
     )
     lines.push('')
   }
@@ -171,7 +171,7 @@ export function exportVehiclePDF(data: ExportData) {
         return [isoToBg(r.date.slice(0, 10)), fmt0(r.odometer), FUEL_LABELS[r.fuelType], fmt2(r.liters), fmt2(r.pricePerLiter), fmt2(r.total), c ? fmt2(c.consumption) : '', c ? fmt0(c.distance) : '', r.station ?? '', r.fullTank ? 'Да' : 'Не']
       }))}
     ${htmlTable('Разходи', ['Дата', 'Км', 'Вид', 'Категория', 'Сума (€)', 'Място', 'Детайли', 'Бележка'],
-      expenses.map((e) => [isoToBg(e.date.slice(0, 10)), e.odometer ? fmt0(e.odometer) : '', e.kind === 'service' ? 'Услуга' : 'Разход', e.category, fmt2(e.cost), e.place ?? '', expenseDetails(e), e.notes ?? '']))}
+      expenses.map((e) => [isoToBg(e.date.slice(0, 10)), e.odometer ? fmt0(e.odometer) : '', e.kind === 'service' ? 'Ремонт' : 'Разход', e.category, fmt2(e.cost), e.place ?? '', expenseDetails(e), e.notes ?? '']))}
     ${htmlTable('Приходи', ['Дата', 'Км', 'Категория', 'Сума (€)', 'Бележка'],
       incomes.map((i) => [isoToBg(i.date.slice(0, 10)), i.odometer ? fmt0(i.odometer) : '', i.category, fmt2(i.amount), i.notes ?? '']))}
     ${htmlTable('Маршрути', ['Дата', 'От', 'До', 'Начало км', 'Край км', 'Разстояние (км)', 'Сума (€)', 'Цел'],
