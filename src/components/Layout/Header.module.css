@@ -12,15 +12,88 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   z-index: 50;
 }
+.headerRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 .selector {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 6px 6px;
   background: transparent;
   border: none;
   border-radius: var(--radius);
+}
+.menuBtn {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+}
+.menuBtn:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+.drawerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 90;
+  animation: drawerFade 0.15s ease;
+}
+.drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(280px, 78vw);
+  background: var(--surface);
+  padding: calc(env(safe-area-inset-top) + 18px) 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: -8px 0 30px rgba(0, 0, 0, 0.25);
+  animation: drawerIn 0.2s ease;
+}
+.drawerHead {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--brand);
+  padding: 4px 12px 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.drawerItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 12px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+}
+.drawerItem:active {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+@keyframes drawerFade {
+  from { opacity: 0; }
+}
+@keyframes drawerIn {
+  from { transform: translateX(100%); }
 }
 .iconWrap {
   width: 40px;
@@ -72,8 +145,8 @@
   border: 1px solid var(--border);
 }
 .vactive {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  border-color: var(--brand);
+  background: var(--brand-soft);
 }
 .vrowInfo {
   flex: 1;
@@ -99,7 +172,7 @@
   padding: 6px;
 }
 .edit:active {
-  color: var(--accent);
+  color: var(--brand);
 }
 .del {
   color: var(--faint);

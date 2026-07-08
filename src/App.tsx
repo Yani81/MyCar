@@ -127,7 +127,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header />
+      <Header go={setTab} />
       {tab === 'dashboard' && <Dashboard go={setTab} />}
       {tab === 'history' && <HistoryPage />}
       {tab === 'reminders' && <RemindersPage />}

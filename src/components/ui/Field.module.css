@@ -150,6 +150,6 @@
   transition: all 0.15s;
 }
 .segActive {
-  background: var(--accent);
-  color: #0e0f12 !important;
+  background: var(--brand);
+  color: var(--on-brand) !important;
 }

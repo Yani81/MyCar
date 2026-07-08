@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import styles from './Header.module.css'
-import { IconChevron, IconCar, IconTrash, IconPencil } from './icons'
+import { IconChevron, IconCar, IconTrash, IconPencil, IconMenu, IconGear, IconUser, IconGauge, IconDocument } from './icons'
 import { Modal } from '../ui/Modal'
 import { Field, Row, inputClass, selectClass, Segmented } from '../ui/Field'
 import { useStore, useActiveVehicle } from '../../store/useStore'
@@ -8,8 +8,9 @@ import { useAuth } from '../../store/useAuth'
 import { FUEL_LABELS, type FuelType, type Vehicle } from '../../types'
 import { exportVehiclePDF, exportVehicleCSV } from '../../lib/export'
 import { downloadBackupJSON, parseBackupJSON } from '../../lib/backup'
+import type { Tab } from './BottomNav'
 
-type ModalView = 'none' | 'garage' | 'add' | 'edit'
+type ModalView = 'none' | 'garage' | 'add' | 'edit' | 'settings' | 'account' | 'export'
 
 const PLATE_MAP: Record<string, string> = {
   'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M',
@@ -20,7 +21,7 @@ function normalizePlate(val: string): string {
   return val.toUpperCase().replace(/./gu, (c) => PLATE_MAP[c] ?? c)
 }
 
-export function Header() {
+export function Header({ go }: { go: (t: Tab) => void }) {
   const vehicles = useStore((s) => s.vehicles)
   const active = useActiveVehicle()
   const setActiveVehicle = useStore((s) => s.setActiveVehicle)
@@ -38,7 +39,16 @@ export function Header() {
   const reminders = useStore((s) => s.reminders)
 
   const [modal, setModal] = useState<ModalView>('none')
+  const [menuOpen, setMenuOpen] = useState(false)
   const importInputRef = useRef<HTMLInputElement>(null)
+
+  const menuItems: { label: string; Icon: typeof IconGauge; action: () => void }[] = [
+    { label: 'Табло', Icon: IconGauge, action: () => go('dashboard') },
+    { label: 'Гараж', Icon: IconCar, action: () => setModal('garage') },
+    { label: 'Доклади', Icon: IconDocument, action: () => setModal('export') },
+    { label: 'Настройки', Icon: IconGear, action: () => setModal('settings') },
+    { label: 'Акаунт', Icon: IconUser, action: () => setModal('account') },
+  ]
 
   const exportBackup = () => {
     const s = useStore.getState()
@@ -158,20 +168,40 @@ export function Header() {
   return (
     <>
       <header className={styles.header}>
-        <button className={styles.selector} onClick={() => setModal('garage')}>
-          <span className={styles.iconWrap}>
-            <IconCar width={20} height={20} />
-          </span>
-          <span className={styles.names}>
-            <span className={styles.vname}>{active.name}</span>
-            <span className={styles.vsub}>
-              {active.plate ? active.plate + ' · ' : ''}
-              {active.fuels.map((f) => FUEL_LABELS[f]).join(' + ')}
+        <div className={styles.headerRow}>
+          <button className={styles.selector} onClick={() => setModal('garage')}>
+            <span className={styles.iconWrap}>
+              <IconCar width={20} height={20} />
             </span>
-          </span>
-          <IconChevron width={18} height={18} className={styles.chev} />
-        </button>
+            <span className={styles.names}>
+              <span className={styles.vname}>{active.name}</span>
+              <span className={styles.vsub}>
+                {active.plate ? active.plate + ' · ' : ''}
+                {active.fuels.map((f) => FUEL_LABELS[f]).join(' + ')}
+              </span>
+            </span>
+            <IconChevron width={18} height={18} className={styles.chev} />
+          </button>
+          <button className={styles.menuBtn} onClick={() => setMenuOpen(true)} aria-label="Меню">
+            <IconMenu width={24} height={24} />
+          </button>
+        </div>
       </header>
+
+      {/* ── Странично меню ── */}
+      {menuOpen && (
+        <div className={styles.drawerOverlay} onClick={() => setMenuOpen(false)}>
+          <nav className={styles.drawer} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.drawerHead}>MyCar</div>
+            {menuItems.map(({ label, Icon, action }) => (
+              <button key={label} className={styles.drawerItem} onClick={() => { setMenuOpen(false); action() }}>
+                <Icon width={20} height={20} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+      )}
 
       {/* ── Гараж ── */}
       <Modal open={modal === 'garage'} title="Гараж" onClose={() => setModal('none')}>
@@ -211,9 +241,47 @@ export function Header() {
         </div>
 
         <button className={styles.ghost} onClick={() => setModal('add')}>+ Нов автомобил</button>
+      </Modal>
+
+      {/* ── Настройки ── */}
+      <Modal open={modal === 'settings'} title="Настройки" onClose={() => setModal('none')}>
+        <div className={styles.themeBlock} style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+          <span className={styles.themeLabel}>Тема</span>
+          <Segmented
+            value={theme}
+            onChange={setTheme}
+            options={[
+              { value: 'auto', label: 'Авто' },
+              { value: 'light', label: 'Светла' },
+              { value: 'dark', label: 'Тъмна' },
+            ]}
+          />
+        </div>
 
         <div className={styles.exportBlock}>
-          <span className={styles.exportLabel}>Експорт на данни</span>
+          <span className={styles.exportLabel}>Резервно копие (всички автомобили)</span>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json,application/json"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) importBackup(file)
+              e.target.value = ''
+            }}
+          />
+          <div className={styles.exportButtons}>
+            <button className={styles.exportBtn} onClick={exportBackup}>Изтегли JSON</button>
+            <button className={styles.exportBtn} onClick={() => importInputRef.current?.click()}>Възстанови</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Доклади (експорт на данни) ── */}
+      <Modal open={modal === 'export'} title="Доклади" onClose={() => setModal('none')}>
+        <div className={styles.exportBlock} style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+          <span className={styles.exportLabel}>Експорт на данни · {active.name}</span>
           <Segmented
             value={exportPeriod}
             onChange={(v) => {
@@ -240,44 +308,17 @@ export function Header() {
             <button className={styles.exportBtn} onClick={() => exportVehicleCSV(exportData())}>CSV</button>
           </div>
         </div>
+      </Modal>
 
-        <div className={styles.exportBlock}>
-          <span className={styles.exportLabel}>Резервно копие (всички автомобили)</span>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".json,application/json"
-            style={{ display: 'none' }}
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) importBackup(file)
-              e.target.value = ''
-            }}
-          />
-          <div className={styles.exportButtons}>
-            <button className={styles.exportBtn} onClick={exportBackup}>Изтегли JSON</button>
-            <button className={styles.exportBtn} onClick={() => importInputRef.current?.click()}>Възстанови</button>
-          </div>
-        </div>
-
-        <div className={styles.themeBlock}>
-          <span className={styles.themeLabel}>Тема</span>
-          <Segmented
-            value={theme}
-            onChange={setTheme}
-            options={[
-              { value: 'auto', label: 'Авто' },
-              { value: 'light', label: 'Светла' },
-              { value: 'dark', label: 'Тъмна' },
-            ]}
-          />
-        </div>
-
-        {user && (
-          <div className={styles.accountBlock}>
+      {/* ── Акаунт ── */}
+      <Modal open={modal === 'account'} title="Акаунт" onClose={() => setModal('none')}>
+        {user ? (
+          <div className={styles.accountBlock} style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
             <span className={styles.accountEmail}>{user.email}</span>
             <button className={styles.signOut} onClick={signOut}>Изход</button>
           </div>
+        ) : (
+          <div className="empty">Няма активен акаунт.</div>
         )}
       </Modal>
 
