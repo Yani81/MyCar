@@ -148,7 +148,8 @@ export function Header({ go }: { go: (t: Tab) => void }) {
   }
 
   // Add vehicle state
-  const [name, setName] = useState('')
+  const [make, setMake] = useState('')
+  const [model, setModel] = useState('')
   const [plate, setPlate] = useState('')
   const [fuel1, setFuel1] = useState<FuelType>('petrol')
   const [fuel2, setFuel2] = useState<FuelType | 'none'>('none')
@@ -156,8 +157,10 @@ export function Header({ go }: { go: (t: Tab) => void }) {
 
   // Edit vehicle state
   const [editing, setEditing] = useState<Vehicle | null>(null)
-  const [editName, setEditName] = useState('')
+  const [editMake, setEditMake] = useState('')
+  const [editModel, setEditModel] = useState('')
   const [editPlate, setEditPlate] = useState('')
+  const [editOdo, setEditOdo] = useState('')
   const [editFuel1, setEditFuel1] = useState<FuelType>('petrol')
   const [editFuel2, setEditFuel2] = useState<FuelType | 'none'>('none')
 
@@ -190,26 +193,43 @@ export function Header({ go }: { go: (t: Tab) => void }) {
   const openEdit = (e: React.MouseEvent, v: Vehicle) => {
     e.stopPropagation()
     setEditing(v)
-    setEditName(v.name)
+    // Стари автомобили без марка/модел: името отива в „Марка", за да не се изгуби при запис
+    setEditMake(v.make ?? v.name)
+    setEditModel(v.model ?? '')
     setEditPlate(v.plate ?? '')
+    setEditOdo(String(v.initialOdometer || ''))
     setEditFuel1(v.fuels[0])
     setEditFuel2(v.fuels[1] ?? 'none')
     setModal('edit')
   }
 
   const saveEdit = () => {
-    if (!editing || !editName.trim()) return
+    if (!editing || !editMake.trim()) return
     const fuels: FuelType[] = editFuel2 !== 'none' && editFuel2 !== editFuel1 ? [editFuel1, editFuel2] : [editFuel1]
-    updateVehicle(editing.id, { name: editName.trim(), plate: editPlate.trim() || undefined, fuels })
+    updateVehicle(editing.id, {
+      name: `${editMake.trim()} ${editModel.trim()}`.trim(),
+      make: editMake.trim(),
+      model: editModel.trim() || undefined,
+      plate: editPlate.trim() || undefined,
+      initialOdometer: Number(editOdo) || 0,
+      fuels,
+    })
     setEditing(null)
     setModal('garage')
   }
 
   const submitVehicle = () => {
-    if (!name.trim()) return
+    if (!make.trim()) return
     const fuels: FuelType[] = fuel2 !== 'none' && fuel2 !== fuel1 ? [fuel1, fuel2] : [fuel1]
-    addVehicle({ name: name.trim(), plate: plate.trim() || undefined, fuels, initialOdometer: Number(odo) || 0 })
-    setName(''); setPlate(''); setOdo(''); setFuel1('petrol'); setFuel2('none')
+    addVehicle({
+      name: `${make.trim()} ${model.trim()}`.trim(),
+      make: make.trim(),
+      model: model.trim() || undefined,
+      plate: plate.trim() || undefined,
+      fuels,
+      initialOdometer: Number(odo) || 0,
+    })
+    setMake(''); setModel(''); setPlate(''); setOdo(''); setFuel1('petrol'); setFuel2('none')
     setModal('garage')
   }
 
@@ -453,14 +473,19 @@ export function Header({ go }: { go: (t: Tab) => void }) {
       {/* ── Нов автомобил ── */}
       <Modal open={modal === 'add'} title="Нов автомобил" onClose={() => setModal('garage')}>
         <div className={styles.addForm}>
-          <Field label="Име">
-            <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} placeholder="напр. Golf 6" />
-          </Field>
+          <Row>
+            <Field label="Марка">
+              <input className={inputClass} value={make} onChange={(e) => setMake(e.target.value)} placeholder="напр. Volkswagen" />
+            </Field>
+            <Field label="Модел">
+              <input className={inputClass} value={model} onChange={(e) => setModel(e.target.value)} placeholder="напр. Golf" />
+            </Field>
+          </Row>
           <Row>
             <Field label="Рег. номер" hint="Само латиница · CB 1234 AB">
               <input className={inputClass} value={plate} onChange={(e) => setPlate(normalizePlate(e.target.value))} placeholder="CB 1234 AB" />
             </Field>
-            <Field label="Начален км">
+            <Field label="Начален километраж">
               <input className={inputClass} inputMode="numeric" value={odo} onChange={(e) => setOdo(e.target.value)} placeholder="0" />
             </Field>
           </Row>
@@ -483,12 +508,22 @@ export function Header({ go }: { go: (t: Tab) => void }) {
       {/* ── Редактиране ── */}
       <Modal open={modal === 'edit'} title={editing ? `Редактиране · ${editing.name}` : 'Редактиране'} onClose={() => { setEditing(null); setModal('garage') }}>
         <div className={styles.addForm}>
-          <Field label="Име">
-            <input className={inputClass} value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="напр. Golf 6" />
-          </Field>
-          <Field label="Рег. номер" hint="Само латиница · CB 1234 AB">
-            <input className={inputClass} value={editPlate} onChange={(e) => setEditPlate(normalizePlate(e.target.value))} placeholder="CB 1234 AB" />
-          </Field>
+          <Row>
+            <Field label="Марка">
+              <input className={inputClass} value={editMake} onChange={(e) => setEditMake(e.target.value)} placeholder="напр. Volkswagen" />
+            </Field>
+            <Field label="Модел">
+              <input className={inputClass} value={editModel} onChange={(e) => setEditModel(e.target.value)} placeholder="напр. Golf" />
+            </Field>
+          </Row>
+          <Row>
+            <Field label="Рег. номер" hint="Само латиница · CB 1234 AB">
+              <input className={inputClass} value={editPlate} onChange={(e) => setEditPlate(normalizePlate(e.target.value))} placeholder="CB 1234 AB" />
+            </Field>
+            <Field label="Начален километраж">
+              <input className={inputClass} inputMode="numeric" value={editOdo} onChange={(e) => setEditOdo(e.target.value)} placeholder="0" />
+            </Field>
+          </Row>
           <Field label="Гориво (резервоар 1)">
             <select className={selectClass} value={editFuel1} onChange={(e) => setEditFuel1(e.target.value as FuelType)}>{fuelOptions}</select>
           </Field>
