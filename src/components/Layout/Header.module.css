@@ -290,6 +290,43 @@
   flex-shrink: 0;
   transform: rotate(-90deg);
 }
+.accList {
+  display: flex;
+  flex-direction: column;
+}
+.accRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 2px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.accRow + .accRow {
+  border-top: 1px solid var(--border);
+}
+.accRow b {
+  color: var(--text);
+  font-weight: 600;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dangerBtn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--red);
+  background: transparent;
+  color: var(--red);
+  font-weight: 700;
+}
+.dangerBtn:disabled {
+  opacity: 0.6;
+}
 .notifStatus {
   margin-top: 10px;
   font-size: 12.5px;

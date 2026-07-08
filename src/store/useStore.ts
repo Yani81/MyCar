@@ -251,6 +251,7 @@ useStore.subscribe(() => {
           reminders: s.reminders,
           activeVehicleId: s.activeVehicleId,
           theme: s.theme,
+          notifyDaysAhead: s.notifyDaysAhead,
         })
       })
     }, 1500)

@@ -8,6 +8,8 @@ import { useAuth } from '../../store/useAuth'
 import { FUEL_LABELS, type FuelType, type Vehicle } from '../../types'
 import { exportVehiclePDF, exportVehicleCSV } from '../../lib/export'
 import { downloadBackupJSON, parseBackupJSON } from '../../lib/backup'
+import { saveToCloud, getLastSyncAt } from '../../lib/sync'
+import { supabase } from '../../lib/supabase'
 import type { Tab } from './BottomNav'
 
 type ModalView = 'none' | 'garage' | 'add' | 'edit' | 'settings' | 'account' | 'export' | 'set-theme' | 'set-notify' | 'set-backup'
@@ -46,6 +48,52 @@ export function Header({ go }: { go: (t: Tab) => void }) {
   const [notifPermission, setNotifPermission] = useState(
     () => ('Notification' in window ? Notification.permission : 'unsupported')
   )
+  const [syncState, setSyncState] = useState<'idle' | 'busy' | 'done'>('idle')
+  const [deleting, setDeleting] = useState(false)
+
+  const dateTimeBg = (iso: string | null | undefined) =>
+    iso ? new Date(iso).toLocaleString('bg-BG', { dateStyle: 'short', timeStyle: 'short' }) : '—'
+
+  const syncNow = async () => {
+    setSyncState('busy')
+    const s = useStore.getState()
+    await saveToCloud({
+      vehicles: s.vehicles,
+      refuels: s.refuels,
+      expenses: s.expenses,
+      incomes: s.incomes,
+      trips: s.trips,
+      readings: s.readings,
+      reminders: s.reminders,
+      activeVehicleId: s.activeVehicleId,
+      theme: s.theme,
+      notifyDaysAhead: s.notifyDaysAhead,
+    })
+    setSyncState('done')
+  }
+
+  const deleteAccount = async () => {
+    if (!user) return
+    if (!confirm('Изтриване на акаунта? Това премахва акаунта, облачните данни и снимките БЕЗВЪЗВРАТНО.')) return
+    if (!confirm('Сигурен ли си? Действието не може да бъде отменено.')) return
+    setDeleting(true)
+    try {
+      // Снимките в bucket-а receipts ({user_id}/...) — на страници по 100
+      for (;;) {
+        const { data: files } = await supabase.storage.from('receipts').list(user.id, { limit: 100 })
+        if (!files || files.length === 0) break
+        await supabase.storage.from('receipts').remove(files.map((f) => `${user.id}/${f.name}`))
+        if (files.length < 100) break
+      }
+      const { error } = await supabase.rpc('delete_account')
+      if (error) throw error
+      localStorage.removeItem('mycar-store-v2')
+      window.location.reload()
+    } catch {
+      setDeleting(false)
+      alert('Изтриването не успя. Функцията delete_account трябва да е инсталирана в Supabase (supabase/delete-account.sql).')
+    }
+  }
   const importInputRef = useRef<HTMLInputElement>(null)
 
   const menuItems: { label: string; Icon: typeof IconGauge; action: () => void }[] = [
@@ -369,12 +417,34 @@ export function Header({ go }: { go: (t: Tab) => void }) {
       </Modal>
 
       {/* ── Акаунт ── */}
-      <Modal open={modal === 'account'} title="Акаунт" onClose={() => setModal('none')}>
+      <Modal open={modal === 'account'} title="Акаунт" onClose={() => { setSyncState('idle'); setModal('none') }}>
         {user ? (
-          <div className={styles.accountBlock} style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
-            <span className={styles.accountEmail}>{user.email}</span>
-            <button className={styles.signOut} onClick={signOut}>Изход</button>
-          </div>
+          <>
+            <div className={styles.accList}>
+              <div className={styles.accRow}><span>Имейл</span><b>{user.email}</b></div>
+              <div className={styles.accRow}><span>Регистриран на</span><b>{user.created_at ? new Date(user.created_at).toLocaleDateString('bg-BG') : '—'}</b></div>
+              <div className={styles.accRow}><span>Последен вход</span><b>{dateTimeBg(user.last_sign_in_at)}</b></div>
+              <div className={styles.accRow}><span>Автомобили</span><b>{vehicles.length}</b></div>
+              <div className={styles.accRow}>
+                <span>Записи общо</span>
+                <b>{refuels.length + expenses.length + incomes.length + trips.length + readings.length + reminders.length}</b>
+              </div>
+              <div className={styles.accRow}>
+                <span>Последна синхронизация</span>
+                <b>{syncState === 'busy' ? 'Синхронизира…' : getLastSyncAt() ? dateTimeBg(getLastSyncAt()) : 'още не'}</b>
+              </div>
+            </div>
+            <button className={styles.exportBtn} style={{ width: '100%', marginTop: 12 }} disabled={syncState === 'busy'} onClick={syncNow}>
+              {syncState === 'done' ? '✓ Синхронизирано' : 'Синхронизирай сега'}
+            </button>
+            <div className={styles.accountBlock}>
+              <span className={styles.accountEmail}>Изход от акаунта на това устройство</span>
+              <button className={styles.signOut} onClick={signOut}>Изход</button>
+            </div>
+            <button className={styles.dangerBtn} disabled={deleting} onClick={deleteAccount}>
+              {deleting ? 'Изтрива…' : 'Изтрий акаунта'}
+            </button>
+          </>
         ) : (
           <div className="empty">Няма активен акаунт.</div>
         )}

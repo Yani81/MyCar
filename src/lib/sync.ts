@@ -17,6 +17,8 @@ export type StoreData = {
 /** updated_at на последната версия, която този клиент е чел или записал. */
 let lastSeenUpdatedAt: string | null = null
 
+export const getLastSyncAt = (): string | null => lastSeenUpdatedAt
+
 const LIST_KEYS = ['vehicles', 'refuels', 'expenses', 'incomes', 'trips', 'readings', 'reminders'] as const
 
 /**
