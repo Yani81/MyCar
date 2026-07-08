@@ -1,5 +1,11 @@
 import type { Vehicle, Refuel, Expense, Income, Trip, OdometerReading, Reminder } from '../types'
-import { FUEL_LABELS } from '../types'
+import { FUEL_LABELS, TIRE_LABELS, consUnitLabel } from '../types'
+import { computeStats, computeConsumption } from './calculations'
+
+const nf2 = new Intl.NumberFormat('bg-BG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const nf0 = new Intl.NumberFormat('bg-BG', { maximumFractionDigits: 0 })
+const fmt2 = (n: number) => nf2.format(n)
+const fmt0 = (n: number) => nf0.format(n)
 
 export interface ExportData {
   vehicle: Vehicle
@@ -110,21 +116,68 @@ function htmlTable(title: string, heads: string[], rows: unknown[][]): string {
     </section>`
 }
 
+/** Допълнителни данни на сервизен запис (масло, филтри, гуми, застраховка) за колоната „Детайли". */
+function expenseDetails(e: Expense): string {
+  const parts: string[] = []
+  if (e.title) parts.push(e.title)
+  if (e.oilType) parts.push(`Масло: ${e.oilType}`)
+  const filters = [
+    e.oilFilterChanged && 'маслен',
+    e.fuelFilterChanged && 'горивен',
+    e.airFilterChanged && 'въздушен',
+    e.cabinFilterChanged && 'купе',
+  ].filter(Boolean)
+  if (filters.length) parts.push(`Филтри: ${filters.join(', ')}`)
+  if (e.tireType) parts.push(`Гуми: ${TIRE_LABELS[e.tireType]}${e.tireSize ? ' ' + e.tireSize : ''}${e.tireDot ? ' · DOT ' + e.tireDot : ''}`)
+  if (e.insuranceType) parts.push(`${e.insuranceType}${e.insuranceCompany ? ' – ' + e.insuranceCompany : ''}`)
+  return parts.join(' · ')
+}
+
 export function exportVehiclePDF(data: ExportData) {
   const { vehicle, refuels, expenses, incomes, trips, readings } = data
   const date = new Date().toLocaleDateString('bg-BG')
 
+  // Разход и изминати км „пълен до пълен" по вид гориво
+  const consMap = new Map<string, { consumption: number; distance: number }>()
+  for (const fuel of new Set(refuels.map((r) => r.fuelType))) {
+    computeConsumption(refuels.filter((r) => r.fuelType === fuel)).forEach((p) =>
+      consMap.set(p.refuelId, { consumption: p.consumption, distance: p.distance })
+    )
+  }
+
+  const stats = computeStats(vehicle, { refuels, expenses, incomes, trips, readings })
+  const mainFuel = vehicle.fuels[0]
+  const consUnit = consUnitLabel(mainFuel)
+
+  const summaryItems: [string, string][] = [
+    ['Изминато разстояние', `${fmt0(stats.totalDistance)} км`],
+    ['Общо разходи', `${fmt2(stats.totalCost)} €`],
+    ['За гориво', `${fmt2(stats.totalFuelCost)} €`],
+    ['Други разходи и услуги', `${fmt2(stats.totalExpenseCost)} €`],
+    ['Приходи', `${fmt2(stats.totalIncome)} €`],
+    ['Баланс', `${fmt2(stats.balance)} €`],
+    ['Среден разход', stats.avgConsumption !== null ? `${fmt2(stats.avgConsumption)} ${consUnit}` : '—'],
+    ['Разход на километър', stats.costPerKm !== null ? `${fmt2(stats.costPerKm)} €/км` : '—'],
+  ]
+  const summary = `
+    <div class="summary">
+      ${summaryItems.map(([l, v]) => `<div class="sumItem"><span>${l}</span><b>${v}</b></div>`).join('')}
+    </div>`
+
   const body = `
-    ${htmlTable('Гориво', ['Дата', 'Км', 'Гориво', 'Литри', 'Цена/л', 'Сума (€)', 'Станция', 'Пълен'],
-      refuels.map((r) => [r.date, r.odometer, FUEL_LABELS[r.fuelType], r.liters, r.pricePerLiter, r.total, r.station ?? '', r.fullTank ? 'Да' : 'Не']))}
-    ${htmlTable('Разходи', ['Дата', 'Км', 'Вид', 'Категория', 'Заглавие', 'Сума (€)', 'Място'],
-      expenses.map((e) => [e.date, e.odometer ?? '', e.kind === 'service' ? 'Услуга' : 'Разход', e.category, e.title ?? '', e.cost, e.place ?? '']))}
-    ${htmlTable('Приходи', ['Дата', 'Км', 'Категория', 'Сума (€)'],
-      incomes.map((i) => [i.date, i.odometer ?? '', i.category, i.amount]))}
-    ${htmlTable('Маршрути', ['Дата', 'От', 'До', 'Начало км', 'Край км', 'Сума (€)', 'Цел'],
-      trips.map((t) => [t.date, t.origin, t.destination, t.startOdometer, t.endOdometer, t.total, t.reason ?? '']))}
+    ${htmlTable('Гориво', ['Дата', 'Км', 'Гориво', 'Литри', 'Цена/л', 'Сума (€)', `Разход (${consUnit})`, 'Изминати км', 'Станция', 'Пълен'],
+      refuels.map((r) => {
+        const c = consMap.get(r.id)
+        return [isoToBg(r.date.slice(0, 10)), fmt0(r.odometer), FUEL_LABELS[r.fuelType], fmt2(r.liters), fmt2(r.pricePerLiter), fmt2(r.total), c ? fmt2(c.consumption) : '', c ? fmt0(c.distance) : '', r.station ?? '', r.fullTank ? 'Да' : 'Не']
+      }))}
+    ${htmlTable('Разходи', ['Дата', 'Км', 'Вид', 'Категория', 'Сума (€)', 'Място', 'Детайли', 'Бележка'],
+      expenses.map((e) => [isoToBg(e.date.slice(0, 10)), e.odometer ? fmt0(e.odometer) : '', e.kind === 'service' ? 'Услуга' : 'Разход', e.category, fmt2(e.cost), e.place ?? '', expenseDetails(e), e.notes ?? '']))}
+    ${htmlTable('Приходи', ['Дата', 'Км', 'Категория', 'Сума (€)', 'Бележка'],
+      incomes.map((i) => [isoToBg(i.date.slice(0, 10)), i.odometer ? fmt0(i.odometer) : '', i.category, fmt2(i.amount), i.notes ?? '']))}
+    ${htmlTable('Маршрути', ['Дата', 'От', 'До', 'Начало км', 'Край км', 'Разстояние (км)', 'Сума (€)', 'Цел'],
+      trips.map((t) => [isoToBg(t.date.slice(0, 10)), t.origin, t.destination, fmt0(t.startOdometer), fmt0(t.endOdometer), fmt0(Math.max(0, t.endOdometer - t.startOdometer)), fmt2(t.total), t.reason ?? '']))}
     ${htmlTable('Километраж', ['Дата', 'Км'],
-      readings.map((r) => [r.date, r.odometer]))}
+      readings.map((r) => [isoToBg(r.date.slice(0, 10)), fmt0(r.odometer)]))}
   `
 
   const periodLabel = data.period ? `${isoToBg(data.period.from)} – ${isoToBg(data.period.to)}` : 'От началото'
@@ -143,6 +196,10 @@ export function exportVehiclePDF(data: ExportData) {
   .print-btn{background:#5b5bd6;color:#fff;border:none;padding:9px 20px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer}
   .print-btn:hover{background:#4a4ac0}
   .content{padding:20px}
+  .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:24px}
+  .sumItem{border:1px solid #cdcdf0;border-radius:8px;padding:8px 10px;background:#f8f8fe}
+  .sumItem span{display:block;font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+  .sumItem b{font-size:13px;color:#111}
   section{margin-bottom:28px;break-inside:avoid}
   h2{font-size:13px;font-weight:700;margin-bottom:8px;color:#5b5bd6;border-left:3px solid #5b5bd6;padding-left:8px;text-transform:uppercase;letter-spacing:.04em}
   table{width:100%;border-collapse:collapse}
@@ -166,7 +223,7 @@ export function exportVehiclePDF(data: ExportData) {
   </div>
   <button class="print-btn" onclick="window.print()">Запази като PDF</button>
 </div>
-<div class="content">${body}</div>
+<div class="content">${summary}${body}</div>
 </body>
 </html>`
 

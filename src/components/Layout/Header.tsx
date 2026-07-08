@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import styles from './Header.module.css'
 import { IconChevron, IconCar, IconTrash, IconPencil, IconMenu, IconGear, IconUser, IconGauge, IconDocument, IconBell, IconMoon, IconDownload } from './icons'
 import { Modal } from '../ui/Modal'
-import { Field, Row, inputClass, selectClass, Segmented } from '../ui/Field'
+import { Field, Row, inputClass, selectClass, Segmented, CheckGroup } from '../ui/Field'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { useAuth } from '../../store/useAuth'
 import { FUEL_LABELS, type FuelType, type Vehicle } from '../../types'
@@ -170,6 +170,12 @@ export function Header({ go }: { go: (t: Tab) => void }) {
   const [exportPeriod, setExportPeriod] = useState<'all' | 'custom'>('all')
   const [exportFrom, setExportFrom] = useState('')
   const [exportTo, setExportTo] = useState(new Date().toLocaleDateString('sv'))
+  const [expRefuels, setExpRefuels] = useState(true)
+  const [expExpenses, setExpExpenses] = useState(true)
+  const [expServices, setExpServices] = useState(true)
+  const [expIncomes, setExpIncomes] = useState(true)
+  const [expTrips, setExpTrips] = useState(true)
+  const [expReadings, setExpReadings] = useState(true)
 
   const exportData = () => {
     const inRange = (date: string) => {
@@ -182,11 +188,13 @@ export function Header({ go }: { go: (t: Tab) => void }) {
       arr.filter((x) => x.vehicleId === active!.id && inRange(x.date))
     return {
       vehicle: active!,
-      refuels: forVehicle(refuels),
-      expenses: forVehicle(expenses),
-      incomes: forVehicle(incomes),
-      trips: forVehicle(trips),
-      readings: forVehicle(readings),
+      refuels: expRefuels ? forVehicle(refuels) : [],
+      expenses: forVehicle(expenses).filter((e) =>
+        e.kind === 'service' ? expServices : expExpenses
+      ),
+      incomes: expIncomes ? forVehicle(incomes) : [],
+      trips: expTrips ? forVehicle(trips) : [],
+      readings: expReadings ? forVehicle(readings) : [],
       reminders: reminders.filter((r) => r.vehicleId === active!.id),
       period: exportPeriod === 'custom' ? { from: exportFrom, to: exportTo } : undefined,
     }
@@ -431,7 +439,19 @@ export function Header({ go }: { go: (t: Tab) => void }) {
               </Field>
             </Row>
           )}
-          <div className={styles.exportButtons}>
+          <Field label="Съдържание на доклада">
+            <CheckGroup
+              items={[
+                { label: 'Зареждания', checked: expRefuels, onChange: setExpRefuels },
+                { label: 'Разходи', checked: expExpenses, onChange: setExpExpenses },
+                { label: 'Услуги', checked: expServices, onChange: setExpServices },
+                { label: 'Приходи', checked: expIncomes, onChange: setExpIncomes },
+                { label: 'Маршрути', checked: expTrips, onChange: setExpTrips },
+                { label: 'Километраж', checked: expReadings, onChange: setExpReadings },
+              ]}
+            />
+          </Field>
+          <div className={styles.exportButtons} style={{ marginTop: 14 }}>
             <button className={styles.exportBtn} onClick={() => exportVehiclePDF(exportData())}>PDF</button>
             <button className={styles.exportBtn} onClick={() => exportVehicleCSV(exportData())}>CSV</button>
           </div>

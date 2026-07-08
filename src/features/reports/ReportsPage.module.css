@@ -85,8 +85,8 @@
   margin-bottom: -1px;
 }
 .tActive {
-  color: var(--brand) !important;
-  border-bottom-color: var(--brand) !important;
+  color: var(--brand);
+  border-bottom-color: var(--brand);
 }
 .cardHead {
   display: flex;

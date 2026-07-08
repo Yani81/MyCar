@@ -135,11 +135,22 @@ export function ReportsPage() {
         </button>
 
         <div className={styles.tabs}>
-          {([['general', 'Общ'], ['fuel', 'Гориво'], ['expense', 'Разходи'], ['income', 'Приход'], ['service', 'Сервиз']] as [SubTab, string][]).map(
-            ([id, label]) => (
-              <button key={id} className={tab === id ? styles.tActive : ''} onClick={() => setTab(id)}>{label}</button>
-            )
-          )}
+          {([
+            ['general', 'Общ', 'var(--brand)'],
+            ['fuel', 'Гориво', ENTRY_COLORS.refuel],
+            ['expense', 'Разходи', ENTRY_COLORS.expense],
+            ['income', 'Приход', ENTRY_COLORS.income],
+            ['service', 'Сервиз', ENTRY_COLORS.service],
+          ] as [SubTab, string, string][]).map(([id, label, color]) => (
+            <button
+              key={id}
+              className={tab === id ? styles.tActive : ''}
+              style={tab === id ? { color, borderBottomColor: color } : undefined}
+              onClick={() => setTab(id)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
