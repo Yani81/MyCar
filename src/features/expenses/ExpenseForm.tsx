@@ -5,7 +5,7 @@ import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore } from '../../store/useStore'
 import { todayISO, todayDateISO, toNumStr } from '../../lib/format'
 import { advanceReminderPatch } from '../../lib/calculations'
-import { EXPENSE_CATEGORIES, ENTRY_COLORS, type Expense, type ExpenseKind, type ReminderBasis } from '../../types'
+import { EXPENSE_CATEGORIES, ENTRY_COLORS, TIRE_LABELS, type Expense, type ExpenseKind, type ReminderBasis, type TireType } from '../../types'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
 import { processReceipt } from '../../lib/image'
 import styles from './ExpenseForm.module.css'
@@ -58,13 +58,23 @@ export function ExpenseForm({
   const allReadings = useStore((s) => s.readings)
   const serviceShops = useStore((s) => s.serviceShops)
   const addServiceShop = useStore((s) => s.addServiceShop)
+  const serviceCategories = useStore((s) => s.serviceCategories)
+  const addServiceCategory = useStore((s) => s.addServiceCategory)
 
   const kind: ExpenseKind = edit?.kind ?? mode
   const cats = EXPENSE_CATEGORIES.filter((c) => c.kind === kind)
 
   const [date, setDate] = useState((edit?.date ?? todayISO()).slice(0, 10))
-  const [categoryId, setCategoryId] = useState(
-    edit ? EXPENSE_CATEGORIES.find((c) => c.label === edit.category)?.id ?? '' : ''
+  const [categoryId, setCategoryId] = useState(() => {
+    if (!edit) return ''
+    const builtin = EXPENSE_CATEGORIES.find((c) => c.label === edit.category)?.id
+    if (builtin) return builtin
+    return serviceCategories.includes(edit.category) ? `custom:${edit.category}` : '__newcat__'
+  })
+  const [newCatText, setNewCatText] = useState(
+    edit && !EXPENSE_CATEGORIES.some((c) => c.label === edit.category) && !serviceCategories.includes(edit.category)
+      ? edit.category
+      : ''
   )
   const [cost, setCost] = useState(edit ? String(edit.cost) : '')
   const [odometer, setOdometer] = useState(edit?.odometer ? String(edit.odometer) : '')
@@ -129,6 +139,11 @@ export function ExpenseForm({
   const [fuelFilter, setFuelFilter] = useState(edit?.fuelFilterChanged ?? false)
   const [airFilter, setAirFilter] = useState(edit?.airFilterChanged ?? false)
 
+  // Tires specific
+  const [tireType, setTireType] = useState<TireType>(edit?.tireType ?? 'summer')
+  const [tireSize, setTireSize] = useState(edit?.tireSize ?? '')
+  const [tireDot, setTireDot] = useState(edit?.tireDot ?? '')
+
   // Inline reminder (само при нов запис)
   const [enableReminder, setEnableReminder] = useState(false)
   const [reminderBasis, setReminderBasis] = useState<ReminderBasis>('odometer')
@@ -137,8 +152,15 @@ export function ExpenseForm({
   const [reminderMonths, setReminderMonths] = useState('')
   const [reminderKm, setReminderKm] = useState('')
 
-  const cat = EXPENSE_CATEGORIES.find((c) => c.id === categoryId)
+  const builtinCat = EXPENSE_CATEGORIES.find((c) => c.id === categoryId)
+  const customLabel = categoryId.startsWith('custom:')
+    ? categoryId.slice('custom:'.length)
+    : categoryId === '__newcat__'
+      ? newCatText.trim()
+      : ''
+  const cat = builtinCat ?? (customLabel ? { id: categoryId, label: customLabel, kind } : undefined)
   const isOil = cat?.id === 'oil'
+  const isTires = cat?.id === 'tires'
   const isInsurance = cat?.id === 'insurance'
   const showReminderDate = reminderBasis === 'date' || reminderBasis === 'both'
   const showReminderOdo = reminderBasis === 'odometer' || reminderBasis === 'both'
@@ -154,6 +176,10 @@ export function ExpenseForm({
 
     if (mode === 'service' && shopPick === '__new__' && shopText.trim()) {
       addServiceShop(shopText.trim())
+    }
+
+    if (categoryId === '__newcat__' && cat.kind === 'service' && cat.label) {
+      addServiceCategory(cat.label)
     }
 
     const payload = {
@@ -184,6 +210,11 @@ export function ExpenseForm({
         oilFilterChanged: oilFilter || undefined,
         fuelFilterChanged: fuelFilter || undefined,
         airFilterChanged: airFilter || undefined,
+      }),
+      ...(isTires && {
+        tireType,
+        tireSize: tireSize.trim() || undefined,
+        tireDot: tireDot.trim() || undefined,
       }),
     }
     if (edit) updateExpense(edit.id, payload)
@@ -335,12 +366,43 @@ export function ExpenseForm({
                 {cats.map((c) => (
                   <option key={c.id} value={c.id}>{c.label}</option>
                 ))}
+                {serviceCategories.map((c) => (
+                  <option key={c} value={`custom:${c}`}>{c}</option>
+                ))}
+                <option value="__newcat__">+ Нова категория…</option>
               </select>
             </Field>
             <Field label="Сума (€)">
               <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(toNumStr(e.target.value))} placeholder="0.00" />
             </Field>
           </Row>
+
+          {categoryId === '__newcat__' && (
+            <Field label="Нова категория">
+              <input className={inputClass} value={newCatText} onChange={(e) => setNewCatText(e.target.value)} placeholder="напр. Спирачки" />
+            </Field>
+          )}
+
+          {/* Tires-specific */}
+          {isTires && (
+            <>
+              <Field label="Вид гуми">
+                <Segmented
+                  value={tireType}
+                  onChange={setTireType}
+                  options={(Object.keys(TIRE_LABELS) as TireType[]).map((t) => ({ value: t, label: TIRE_LABELS[t] }))}
+                />
+              </Field>
+              <Row>
+                <Field label="Размер (по избор)">
+                  <input className={inputClass} value={tireSize} onChange={(e) => setTireSize(e.target.value)} placeholder="205/55 R16" />
+                </Field>
+                <Field label="DOT (по избор)">
+                  <input className={inputClass} value={tireDot} onChange={(e) => setTireDot(e.target.value)} placeholder="напр. 2523" />
+                </Field>
+              </Row>
+            </>
+          )}
 
           {/* 3-5. Oil-specific */}
           {isOil && (

@@ -58,6 +58,17 @@ export interface Expense {
   oilFilterChanged?: boolean
   fuelFilterChanged?: boolean
   airFilterChanged?: boolean
+  tireType?: TireType
+  tireSize?: string
+  tireDot?: string
+}
+
+export type TireType = 'summer' | 'winter' | 'allseason'
+
+export const TIRE_LABELS: Record<TireType, string> = {
+  summer: 'Летни',
+  winter: 'Зимни',
+  allseason: 'Всесезонни',
 }
 
 export interface Income {

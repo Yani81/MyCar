@@ -3,7 +3,7 @@ import styles from './HistoryPage.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { useUI, type FormOpen, type HistoryFilter } from '../../store/useUI'
 import { money, km, dateShort, timeShort } from '../../lib/format'
-import { FUEL_LABELS, FUEL_UNITS, consUnitLabel, ENTRY_COLORS, type Refuel, type Expense, type Income, type Trip, type OdometerReading } from '../../types'
+import { FUEL_LABELS, FUEL_UNITS, consUnitLabel, ENTRY_COLORS, TIRE_LABELS, type Refuel, type Expense, type Income, type Trip, type OdometerReading } from '../../types'
 import { IconWrench, IconIncome, IconRoute, IconOdometer } from '../../components/Layout/icons'
 import { ImageLightbox } from '../../components/ui/ImageLightbox'
 import { computeConsumption, sortRefuels } from '../../lib/calculations'
@@ -367,6 +367,16 @@ export function HistoryPage() {
           <DetailRow label="Категория" value={e.category} />
           {e.odometer != null && e.odometer > 0 && <DetailRow label="Километраж" value={km(e.odometer)} />}
           {e.place && <DetailRow label="Място" value={e.place} />}
+          {e.oilType && <DetailRow label="Вид масло" value={e.oilType} />}
+          {(e.oilFilterChanged || e.fuelFilterChanged || e.airFilterChanged) && (
+            <DetailRow
+              label="Сменени филтри"
+              value={[e.oilFilterChanged && 'маслен', e.fuelFilterChanged && 'горивен', e.airFilterChanged && 'въздушен'].filter(Boolean).join(', ')}
+            />
+          )}
+          {e.tireType && <DetailRow label="Вид гуми" value={TIRE_LABELS[e.tireType]} />}
+          {e.tireSize && <DetailRow label="Размер гуми" value={e.tireSize} />}
+          {e.tireDot && <DetailRow label="DOT" value={e.tireDot} />}
           {e.insuranceType && <DetailRow label="Вид застраховка" value={e.insuranceType} />}
           {e.insuranceCompany && <DetailRow label="Застраховател" value={e.insuranceCompany} />}
           {e.installments?.length

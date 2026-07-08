@@ -25,6 +25,7 @@ export interface BackupData {
   theme: Theme
   vehicleChecks: Record<string, VehicleChecks>
   serviceShops: string[]
+  serviceCategories: string[]
 }
 
 export function downloadBackupJSON(data: Omit<BackupData, 'version' | 'exportedAt'>) {
@@ -59,5 +60,6 @@ export function parseBackupJSON(text: string): BackupData {
     theme: data.theme === 'dark' || data.theme === 'auto' ? data.theme : 'light',
     vehicleChecks: data.vehicleChecks && typeof data.vehicleChecks === 'object' ? data.vehicleChecks : {},
     serviceShops: Array.isArray(data.serviceShops) ? data.serviceShops : [],
+    serviceCategories: Array.isArray(data.serviceCategories) ? data.serviceCategories : [],
   }
 }

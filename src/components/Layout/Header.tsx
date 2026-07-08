@@ -118,6 +118,7 @@ export function Header({ go }: { go: (t: Tab) => void }) {
       theme: s.theme,
       vehicleChecks: s.vehicleChecks,
       serviceShops: s.serviceShops,
+      serviceCategories: s.serviceCategories,
     })
   }
 
@@ -140,6 +141,7 @@ export function Header({ go }: { go: (t: Tab) => void }) {
         theme: data.theme,
         vehicleChecks: data.vehicleChecks,
         serviceShops: data.serviceShops,
+        serviceCategories: data.serviceCategories,
       })
       setModal('none')
     } catch (err) {

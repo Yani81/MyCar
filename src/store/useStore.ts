@@ -72,6 +72,10 @@ interface State {
 
   serviceShops: string[]
   addServiceShop: (shop: string) => void
+
+  /** Собствени категории услуги, добавени от потребителя */
+  serviceCategories: string[]
+  addServiceCategory: (label: string) => void
 }
 
 const defaultVehicle = (): Vehicle => ({
@@ -208,6 +212,14 @@ export const useStore = create<State>()(
         addServiceShop: (shop) =>
           set((s) => ({
             serviceShops: s.serviceShops.includes(shop) ? s.serviceShops : [...s.serviceShops, shop],
+          })),
+
+        serviceCategories: [],
+        addServiceCategory: (label) =>
+          set((s) => ({
+            serviceCategories: s.serviceCategories.includes(label)
+              ? s.serviceCategories
+              : [...s.serviceCategories, label],
           })),
       }
     },
