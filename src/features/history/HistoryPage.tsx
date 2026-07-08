@@ -368,10 +368,10 @@ export function HistoryPage() {
           {e.odometer != null && e.odometer > 0 && <DetailRow label="Километраж" value={km(e.odometer)} />}
           {e.place && <DetailRow label="Място" value={e.place} />}
           {e.oilType && <DetailRow label="Вид масло" value={e.oilType} />}
-          {(e.oilFilterChanged || e.fuelFilterChanged || e.airFilterChanged) && (
+          {(e.oilFilterChanged || e.fuelFilterChanged || e.airFilterChanged || e.cabinFilterChanged) && (
             <DetailRow
               label="Сменени филтри"
-              value={[e.oilFilterChanged && 'маслен', e.fuelFilterChanged && 'горивен', e.airFilterChanged && 'въздушен'].filter(Boolean).join(', ')}
+              value={[e.oilFilterChanged && 'маслен', e.fuelFilterChanged && 'горивен', e.airFilterChanged && 'въздушен', e.cabinFilterChanged && 'купе'].filter(Boolean).join(', ')}
             />
           )}
           {e.tireType && <DetailRow label="Вид гуми" value={TIRE_LABELS[e.tireType]} />}

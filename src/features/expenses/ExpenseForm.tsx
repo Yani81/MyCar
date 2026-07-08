@@ -138,6 +138,7 @@ export function ExpenseForm({
   const [oilFilter, setOilFilter] = useState(edit?.oilFilterChanged ?? false)
   const [fuelFilter, setFuelFilter] = useState(edit?.fuelFilterChanged ?? false)
   const [airFilter, setAirFilter] = useState(edit?.airFilterChanged ?? false)
+  const [cabinFilter, setCabinFilter] = useState(edit?.cabinFilterChanged ?? false)
 
   // Tires specific
   const [tireType, setTireType] = useState<TireType>(edit?.tireType ?? 'summer')
@@ -210,6 +211,7 @@ export function ExpenseForm({
         oilFilterChanged: oilFilter || undefined,
         fuelFilterChanged: fuelFilter || undefined,
         airFilterChanged: airFilter || undefined,
+        cabinFilterChanged: cabinFilter || undefined,
       }),
       ...(isTires && {
         tireType,
@@ -421,6 +423,7 @@ export function ExpenseForm({
                     { label: 'Маслен филтър', checked: oilFilter, onChange: setOilFilter },
                     { label: 'Горивен филтър', checked: fuelFilter, onChange: setFuelFilter },
                     { label: 'Въздушен филтър', checked: airFilter, onChange: setAirFilter },
+                    { label: 'Филтър на купето', checked: cabinFilter, onChange: setCabinFilter },
                   ]}
                 />
               </Field>

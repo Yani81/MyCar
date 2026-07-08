@@ -58,6 +58,7 @@ export interface Expense {
   oilFilterChanged?: boolean
   fuelFilterChanged?: boolean
   airFilterChanged?: boolean
+  cabinFilterChanged?: boolean
   tireType?: TireType
   tireSize?: string
   tireDot?: string
