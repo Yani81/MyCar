@@ -65,10 +65,13 @@ export function Segmented<T extends string>({
   value,
   options,
   onChange,
+  color,
 }: {
   value: T
   options: { value: T; label: string }[]
   onChange: (v: T) => void
+  /** Цвят на активния сегмент (напр. цвета на модала); по подразбиране var(--brand) */
+  color?: string
 }) {
   return (
     <div className={styles.segmented}>
@@ -77,6 +80,7 @@ export function Segmented<T extends string>({
           key={o.value}
           type="button"
           className={value === o.value ? styles.segActive : ''}
+          style={value === o.value && color ? { background: color } : undefined}
           onClick={() => onChange(o.value)}
         >
           {o.label}

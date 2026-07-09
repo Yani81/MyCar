@@ -53,6 +53,7 @@ export function ReminderForm({ vehicleId, edit, onClose }: { vehicleId: string; 
         <Segmented
           value={basis}
           onChange={setBasis}
+          color={ENTRY_COLORS.reminder}
           options={[
             { value: 'date', label: 'Дата' },
             { value: 'odometer', label: 'Километраж' },

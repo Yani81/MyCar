@@ -142,6 +142,7 @@ export function ExpenseForm({
 
   // Tires specific
   const [tireType, setTireType] = useState<TireType>(edit?.tireType ?? 'summer')
+  const [tireBrand, setTireBrand] = useState(edit?.tireBrand ?? '')
   const [tireSize, setTireSize] = useState(edit?.tireSize ?? '')
   const [tireDot, setTireDot] = useState(edit?.tireDot ?? '')
 
@@ -215,6 +216,7 @@ export function ExpenseForm({
       }),
       ...(isTires && {
         tireType,
+        tireBrand: tireBrand.trim() || undefined,
         tireSize: tireSize.trim() || undefined,
         tireDot: tireDot.trim() || undefined,
       }),
@@ -392,17 +394,21 @@ export function ExpenseForm({
                 <Segmented
                   value={tireType}
                   onChange={setTireType}
+                  color={formColor}
                   options={(Object.keys(TIRE_LABELS) as TireType[]).map((t) => ({ value: t, label: TIRE_LABELS[t] }))}
                 />
               </Field>
               <Row>
+                <Field label="Марка гуми (по избор)">
+                  <input className={inputClass} value={tireBrand} onChange={(e) => setTireBrand(e.target.value)} placeholder="напр. Michelin" />
+                </Field>
                 <Field label="Размер (по избор)">
                   <input className={inputClass} value={tireSize} onChange={(e) => setTireSize(e.target.value)} placeholder="205/55 R16" />
                 </Field>
-                <Field label="DOT (по избор)">
-                  <input className={inputClass} value={tireDot} onChange={(e) => setTireDot(e.target.value)} placeholder="напр. 2523" />
-                </Field>
               </Row>
+              <Field label="DOT (по избор)">
+                <input className={inputClass} value={tireDot} onChange={(e) => setTireDot(e.target.value)} placeholder="напр. 2523" />
+              </Field>
             </>
           )}
 
@@ -436,6 +442,7 @@ export function ExpenseForm({
                         <Segmented
                           value={reminderBasis}
                           onChange={setReminderBasis}
+                          color={formColor}
                           options={[
                             { value: 'date', label: 'Дата' },
                             { value: 'odometer', label: 'Километраж' },
