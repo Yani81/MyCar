@@ -141,7 +141,7 @@ export const FUEL_UNITS: Record<FuelType, string> = {
 export const consUnitLabel = (fuel: FuelType): string => `${FUEL_UNITS[fuel]}/100км`
 
 export const EXPENSE_CATEGORIES: { id: string; label: string; kind: ExpenseKind }[] = [
-  { id: 'service', label: 'Сервиз', kind: 'service' },
+  { id: 'service', label: 'Ремонт', kind: 'service' },
   { id: 'oil', label: 'Смяна на масло', kind: 'service' },
   { id: 'tires', label: 'Гуми', kind: 'service' },
   { id: 'parts', label: 'Части', kind: 'service' },

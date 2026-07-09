@@ -67,7 +67,10 @@ export function ExpenseForm({
   const [date, setDate] = useState((edit?.date ?? todayISO()).slice(0, 10))
   const [categoryId, setCategoryId] = useState(() => {
     if (!edit) return ''
-    const builtin = EXPENSE_CATEGORIES.find((c) => c.label === edit.category)?.id
+    // Стари записи с категория „Сервиз" (преименувана на „Ремонт") сочат същата вградена категория
+    const builtin = EXPENSE_CATEGORIES.find(
+      (c) => c.label === edit.category || (c.id === 'service' && edit.category === 'Сервиз')
+    )?.id
     if (builtin) return builtin
     return serviceCategories.includes(edit.category) ? `custom:${edit.category}` : '__newcat__'
   })
@@ -76,6 +79,7 @@ export function ExpenseForm({
       ? edit.category
       : ''
   )
+  const [title, setTitle] = useState(edit?.title ?? '')
   const [cost, setCost] = useState(edit ? String(edit.cost) : '')
   const [odometer, setOdometer] = useState(edit?.odometer ? String(edit.odometer) : '')
   const [place, setPlace] = useState(edit?.place ?? '')
@@ -163,6 +167,7 @@ export function ExpenseForm({
   const cat = builtinCat ?? (customLabel ? { id: categoryId, label: customLabel, kind } : undefined)
   const isOil = cat?.id === 'oil'
   const isTires = cat?.id === 'tires'
+  const isGenericRepair = cat?.id === 'service'
   const isInsurance = cat?.id === 'insurance'
   const showReminderDate = reminderBasis === 'date' || reminderBasis === 'both'
   const showReminderOdo = reminderBasis === 'odometer' || reminderBasis === 'both'
@@ -189,7 +194,7 @@ export function ExpenseForm({
       date: date,
       kind: cat.kind,
       category: cat.label,
-      title: undefined,
+      title: isGenericRepair ? title.trim() || undefined : undefined,
       cost: isInsurance
         ? installments.reduce((s, r) => s + (r.paid ? parseFloat(toNumStr(r.amount)) || 0 : 0), 0)
         : Number(cost),
@@ -363,7 +368,7 @@ export function ExpenseForm({
 
           {/* 2. Вид услуга + Сума */}
           <Row>
-            <Field label="Вид ремонт">
+            <Field label="Вид">
               <select className={selectClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                 <option value="">— изберете —</option>
                 {cats.map((c) => (
@@ -383,6 +388,12 @@ export function ExpenseForm({
           {categoryId === '__newcat__' && (
             <Field label="Нова категория">
               <input className={inputClass} value={newCatText} onChange={(e) => setNewCatText(e.target.value)} placeholder="напр. Спирачки" />
+            </Field>
+          )}
+
+          {isGenericRepair && (
+            <Field label="Име">
+              <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. Смяна на съединител" />
             </Field>
           )}
 
