@@ -312,7 +312,6 @@ export function ExpenseForm({
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         style={{ display: 'none' }}
         onChange={async (e) => {
           const file = e.target.files?.[0]

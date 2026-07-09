@@ -169,7 +169,6 @@ export function RefuelForm({ vehicleId, edit, onClose }: { vehicleId: string; ed
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         style={{ display: 'none' }}
         onChange={async (e) => {
           const file = e.target.files?.[0]
