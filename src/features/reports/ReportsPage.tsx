@@ -7,9 +7,10 @@ import styles from './ReportsPage.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import {
   computeStats, computeConsumption, monthlySpend, expensesByCategory, incomesByCategory,
-  refuelsByStation, fuelPriceTrend, refuelIntervalStats, recordIntervalStats, type AllData, type NamedBucket,
+  refuelsByStation, fuelPriceTrend, refuelIntervalStats, recordIntervalStats, serviceMileage, currentOdometer,
+  type AllData, type NamedBucket, type ServiceMileage,
 } from '../../lib/calculations'
-import { consUnitLabel, FUEL_UNITS, ENTRY_COLORS } from '../../types'
+import { consUnitLabel, FUEL_UNITS, ENTRY_COLORS, TIRE_LABELS } from '../../types'
 import { money, num, numFixed, monthLabel, dateShort, km } from '../../lib/format'
 import { IconIncome, IconRoute, IconWrench, IconFuel, IconChart } from '../../components/Layout/icons'
 import { Modal } from '../../components/ui/Modal'
@@ -83,6 +84,14 @@ export function ReportsPage() {
   }, [v, refuels, expenses, incomes, trips, readings, from, to])
 
   const stats = useMemo(() => (v && data ? computeStats(v, data) : null), [v, data])
+
+  // Пробег по компоненти — върху всички записи на автомобила, независимо от периода
+  const mileage: ServiceMileage | null = useMemo(() => {
+    if (!v) return null
+    const byV = <T extends { vehicleId: string }>(arr: T[]) => arr.filter((x) => x.vehicleId === v.id)
+    const all = { refuels: byV(refuels), expenses: byV(expenses), incomes: byV(incomes), trips: byV(trips), readings: byV(readings) }
+    return serviceMileage(all.expenses, currentOdometer(v, all))
+  }, [v, refuels, expenses, incomes, trips, readings])
   const monthly: MonthlyRow[] = useMemo(
     () => (data ? monthlySpend(data, from, to).map((b) => ({ ...b, label: monthLabel(b.key) })) : []),
     [data, from, to]
@@ -165,7 +174,7 @@ export function ReportsPage() {
       ) : tab === 'income' ? (
         <IncomeTab data={data} stats={stats} monthly={monthly} />
       ) : (
-        <Service data={data} monthly={monthly} />
+        <Service data={data} monthly={monthly} mileage={mileage} />
       )}
     </div>
   )
@@ -330,7 +339,8 @@ function IncomeTab({ data, stats, monthly }: { data: AllData; stats: Stats; mont
   )
 }
 
-function Service({ data, monthly }: { data: AllData; monthly: MonthlyRow[] }) {
+function Service({ data, monthly, mileage }: { data: AllData; monthly: MonthlyRow[]; mileage: ServiceMileage | null }) {
+  const hasMileage = !!mileage && (Object.keys(mileage.tireKm).length > 0 || mileage.sinceOil !== null || mileage.sinceBelts !== null)
   const list = data.expenses.filter((e) => e.kind === 'service')
   const cats = expensesByCategory(list)
   const total = cats.reduce((s, c) => s + c.total, 0)
@@ -349,6 +359,18 @@ function Service({ data, monthly }: { data: AllData; monthly: MonthlyRow[] }) {
             <Mini label="Ср. дни между посещенията" value={rec.avgDaysBetween !== null ? num(rec.avgDaysBetween, 1) : '—'} />
             <Mini label="Ср. сума на посещение" value={rec.avgAmount !== null ? money(rec.avgAmount) : '—'} />
             <Mini label="Разход на ден" value={rec.amountPerDay !== null ? money(rec.amountPerDay) : '—'} />
+          </div>
+        </div>
+      )}
+      {hasMileage && mileage && (
+        <div className={`card ${styles.tank}`}>
+          <div className={styles.tankHead}>Пробег</div>
+          <div className={styles.tankGrid2}>
+            {mileage.tireKm.summer !== undefined && <Mini label={`С ${TIRE_LABELS.summer.toLowerCase()} гуми`} value={km(mileage.tireKm.summer)} />}
+            {mileage.tireKm.winter !== undefined && <Mini label={`Със ${TIRE_LABELS.winter.toLowerCase()} гуми`} value={km(mileage.tireKm.winter)} />}
+            {mileage.tireKm.allseason !== undefined && <Mini label={`С ${TIRE_LABELS.allseason.toLowerCase()} гуми`} value={km(mileage.tireKm.allseason)} />}
+            <Mini label="От смяна на масло" value={mileage.sinceOil !== null ? km(mileage.sinceOil) : '—'} />
+            <Mini label="От смяна на ремъци" value={mileage.sinceBelts !== null ? km(mileage.sinceBelts) : '—'} />
           </div>
         </div>
       )}

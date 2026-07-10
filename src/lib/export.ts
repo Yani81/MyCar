@@ -128,7 +128,7 @@ function expenseDetails(e: Expense): string {
     e.cabinFilterChanged && 'купе',
   ].filter(Boolean)
   if (filters.length) parts.push(`Филтри: ${filters.join(', ')}`)
-  if (e.tireType) parts.push(`Гуми: ${TIRE_LABELS[e.tireType]}${e.tireBrand ? ' ' + e.tireBrand : ''}${e.tireSize ? ' ' + e.tireSize : ''}${e.tireDot ? ' · DOT ' + e.tireDot : ''}`)
+  if (e.tireType) parts.push(`Гуми: ${TIRE_LABELS[e.tireType]}${e.tireCondition ? ` (${e.tireCondition === 'new' ? 'нови' : 'стари'})` : ''}${e.tireBrand ? ' ' + e.tireBrand : ''}${e.tireSize ? ' ' + e.tireSize : ''}${e.tireDot ? ' · DOT ' + e.tireDot : ''}`)
   if (e.insuranceType) parts.push(`${e.insuranceType}${e.insuranceCompany ? ' – ' + e.insuranceCompany : ''}`)
   return parts.join(' · ')
 }

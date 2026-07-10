@@ -7,6 +7,7 @@ import type {
   Reminder,
   Vehicle,
   FuelType,
+  TireType,
 } from '../types'
 import { FUEL_LABELS } from '../types'
 import { monthKey } from './format'
@@ -226,6 +227,46 @@ export const recordIntervalStats = (records: { date: string; amount: number }[])
     avgDaysBetween: spanDays > 0 ? spanDays / (count - 1) : null,
     avgAmount,
     amountPerDay: spanDays > 0 ? totalAmount / spanDays : null,
+  }
+}
+
+export interface ServiceMileage {
+  /** Общо изминати км по вид гуми (сегменти между смените) */
+  tireKm: Partial<Record<TireType, number>>
+  /** Км от последната смяна на масло */
+  sinceOil: number | null
+  /** Км от последната смяна на ремъци */
+  sinceBelts: number | null
+}
+
+/** Пробег по компоненти от сервизните записи; смята се върху всички записи (не по период). */
+export const serviceMileage = (expenses: Expense[], currentOdo: number): ServiceMileage => {
+  const tireChanges = expenses
+    .filter((e) => e.kind === 'service' && e.tireType && (e.odometer ?? 0) > 0)
+    .sort((a, b) => a.odometer! - b.odometer!)
+
+  // Пробег на текущия комплект: „нови" гуми нулират брояча за вида,
+  // „стари" (сезонна ротация на същия комплект) продължават натрупването.
+  const tireKm: Partial<Record<TireType, number>> = {}
+  tireChanges.forEach((e, i) => {
+    const end = i + 1 < tireChanges.length ? tireChanges[i + 1].odometer! : currentOdo
+    const seg = Math.max(0, end - e.odometer!)
+    const t = e.tireType!
+    if (e.tireCondition === 'new') tireKm[t] = seg
+    else tireKm[t] = (tireKm[t] ?? 0) + seg
+  })
+
+  const sinceLast = (category: string): number | null => {
+    const last = expenses
+      .filter((e) => e.kind === 'service' && e.category === category && (e.odometer ?? 0) > 0)
+      .reduce<Expense | null>((best, e) => (!best || e.odometer! > best.odometer! ? e : best), null)
+    return last ? Math.max(0, currentOdo - last.odometer!) : null
+  }
+
+  return {
+    tireKm,
+    sinceOil: sinceLast('Смяна на масло'),
+    sinceBelts: sinceLast('Ремъци'),
   }
 }
 

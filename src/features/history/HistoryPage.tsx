@@ -375,6 +375,7 @@ export function HistoryPage() {
             />
           )}
           {e.tireType && <DetailRow label="Вид гуми" value={TIRE_LABELS[e.tireType]} />}
+          {e.tireCondition && <DetailRow label="Състояние" value={e.tireCondition === 'new' ? 'Нови' : 'Стари'} />}
           {e.tireBrand && <DetailRow label="Марка гуми" value={e.tireBrand} />}
           {e.tireSize && <DetailRow label="Размер гуми" value={e.tireSize} />}
           {e.tireDot && <DetailRow label="DOT" value={e.tireDot} />}

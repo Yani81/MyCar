@@ -146,6 +146,7 @@ export function ExpenseForm({
 
   // Tires specific
   const [tireType, setTireType] = useState<TireType>(edit?.tireType ?? 'summer')
+  const [tireCondition, setTireCondition] = useState<'new' | 'used'>(edit?.tireCondition ?? 'new')
   const [tireBrand, setTireBrand] = useState(edit?.tireBrand ?? '')
   const [tireSize, setTireSize] = useState(edit?.tireSize ?? '')
   const [tireDot, setTireDot] = useState(edit?.tireDot ?? '')
@@ -221,6 +222,7 @@ export function ExpenseForm({
       }),
       ...(isTires && {
         tireType,
+        tireCondition,
         tireBrand: tireBrand.trim() || undefined,
         tireSize: tireSize.trim() || undefined,
         tireDot: tireDot.trim() || undefined,
@@ -406,6 +408,17 @@ export function ExpenseForm({
                   onChange={setTireType}
                   color={formColor}
                   options={(Object.keys(TIRE_LABELS) as TireType[]).map((t) => ({ value: t, label: TIRE_LABELS[t] }))}
+                />
+              </Field>
+              <Field label="Състояние">
+                <Segmented
+                  value={tireCondition}
+                  onChange={setTireCondition}
+                  color={formColor}
+                  options={[
+                    { value: 'new', label: 'Нови' },
+                    { value: 'used', label: 'Стари' },
+                  ]}
                 />
               </Field>
               <Row>

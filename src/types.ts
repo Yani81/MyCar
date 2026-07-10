@@ -60,6 +60,7 @@ export interface Expense {
   airFilterChanged?: boolean
   cabinFilterChanged?: boolean
   tireType?: TireType
+  tireCondition?: 'new' | 'used'
   tireBrand?: string
   tireSize?: string
   tireDot?: string
