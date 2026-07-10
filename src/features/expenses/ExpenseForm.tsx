@@ -67,9 +67,12 @@ export function ExpenseForm({
   const [date, setDate] = useState((edit?.date ?? todayISO()).slice(0, 10))
   const [categoryId, setCategoryId] = useState(() => {
     if (!edit) return ''
-    // Стари записи с категория „Сервиз" (преименувана на „Ремонт") сочат същата вградена категория
+    // Стари записи с преименувани категории сочат новите вградени
     const builtin = EXPENSE_CATEGORIES.find(
-      (c) => c.label === edit.category || (c.id === 'service' && edit.category === 'Сервиз')
+      (c) =>
+        c.label === edit.category ||
+        (c.id === 'service' && edit.category === 'Сервиз') ||
+        (c.id === 'tax' && edit.category === 'Данък / винетка')
     )?.id
     if (builtin) return builtin
     return serviceCategories.includes(edit.category) ? `custom:${edit.category}` : '__newcat__'
@@ -248,14 +251,21 @@ export function ExpenseForm({
 
     if (isInsurance && edit) {
       const prevInst = edit.installments ?? []
+      // Платени вноски: махни напомнянията им (по нова ИЛИ стара дата), при всяко запазване —
+      // идемпотентно, чисти и заседнали напомняния от предишни редакции
       installments.forEach((inst, i) => {
-        const wasPaid = prevInst[i]?.paid ?? false
-        if (inst.paid && !wasPaid && inst.dueDate) {
-          const match = reminders.find(
-            (r) => r.vehicleId === vehicleId && r.dueDate === inst.dueDate && !r.done
+        if (!inst.paid) return
+        const dates = [inst.dueDate, prevInst[i]?.dueDate].filter(Boolean) as string[]
+        reminders
+          .filter(
+            (r) =>
+              r.vehicleId === vehicleId &&
+              !r.done &&
+              r.title.startsWith('Вноска') &&
+              r.title.includes(insuranceType) &&
+              dates.includes(r.dueDate ?? '')
           )
-          if (match) removeReminder(match.id)
-        }
+          .forEach((r) => removeReminder(r.id))
       })
       // Неплатена вноска с дата без напомняне (нова/сменена дата при редакция) → създай
       const company = insuranceCompany.trim()
