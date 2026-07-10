@@ -2,10 +2,10 @@ import { useMemo } from 'react'
 import styles from './Dashboard.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { useUI, type FormOpen } from '../../store/useUI'
-import { computeStats, reminderInfo, type AllData } from '../../lib/calculations'
+import { computeStats, reminderInfo, serviceMileage, type AllData } from '../../lib/calculations'
 import { money, km, num, dateShort } from '../../lib/format'
 import type { Tab } from '../../components/Layout/BottomNav'
-import { FUEL_LABELS, FUEL_UNITS, consUnitLabel } from '../../types'
+import { FUEL_LABELS, FUEL_UNITS, TIRE_LABELS, consUnitLabel } from '../../types'
 import { IconFuel, IconWrench, IconIncome, IconRoute, IconBell } from '../../components/Layout/icons'
 
 export function Dashboard({ go }: { go: (t: Tab) => void }) {
@@ -49,11 +49,14 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
       .sort((a, b) => b.date.localeCompare(a.date) || b.odo - a.odo)
       .slice(0, 6)
 
-    return { stats, nextRem, recent, lastRefuel, lastKm }
+    const mileage = serviceMileage(data.expenses, stats.currentOdometer)
+
+    return { stats, nextRem, recent, lastRefuel, lastKm, mileage }
   }, [v, refuels, expenses, incomes, trips, readings, reminders])
 
   if (!v || !d) return null
-  const { stats, nextRem, recent } = d
+  const { stats, nextRem, recent, mileage } = d
+  const hasMileage = Object.keys(mileage.tireKm).length > 0 || mileage.sinceOil !== null || mileage.sinceBelts !== null
 
   const checks = vehicleChecks[v.id] ?? {}
   const checkItems = [
@@ -131,6 +134,25 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
           })}
         </div>
       </button>
+
+      {hasMileage && (
+        <div className={styles.mileageCard}>
+          <span className={styles.mileageTitle}>Пробег</span>
+          <div className={styles.mileageGrid}>
+            {mileage.tireKm.summer !== undefined && (
+              <div className={styles.mItem}><span>С {TIRE_LABELS.summer.toLowerCase()} гуми</span><b className="mono">{km(mileage.tireKm.summer)}</b></div>
+            )}
+            {mileage.tireKm.winter !== undefined && (
+              <div className={styles.mItem}><span>Със {TIRE_LABELS.winter.toLowerCase()} гуми</span><b className="mono">{km(mileage.tireKm.winter)}</b></div>
+            )}
+            {mileage.tireKm.allseason !== undefined && (
+              <div className={styles.mItem}><span>С {TIRE_LABELS.allseason.toLowerCase()} гуми</span><b className="mono">{km(mileage.tireKm.allseason)}</b></div>
+            )}
+            <div className={styles.mItem}><span>От смяна на масло</span><b className="mono">{mileage.sinceOil !== null ? km(mileage.sinceOil) : '—'}</b></div>
+            <div className={styles.mItem}><span>От смяна на ремъци</span><b className="mono">{mileage.sinceBelts !== null ? km(mileage.sinceBelts) : '—'}</b></div>
+          </div>
+        </div>
+      )}
 
       <div className="section-title">Последна активност</div>
       {recent.length === 0 ? (

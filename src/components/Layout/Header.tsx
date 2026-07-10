@@ -444,7 +444,7 @@ export function Header({ go }: { go: (t: Tab) => void }) {
               items={[
                 { label: 'Зареждания', checked: expRefuels, onChange: setExpRefuels },
                 { label: 'Разходи', checked: expExpenses, onChange: setExpExpenses },
-                { label: 'Услуги', checked: expServices, onChange: setExpServices },
+                { label: 'Ремонти', checked: expServices, onChange: setExpServices },
                 { label: 'Приходи', checked: expIncomes, onChange: setExpIncomes },
                 { label: 'Маршрути', checked: expTrips, onChange: setExpTrips },
                 { label: 'Километраж', checked: expReadings, onChange: setExpReadings },

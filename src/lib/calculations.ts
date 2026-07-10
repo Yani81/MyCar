@@ -66,6 +66,21 @@ export interface AllData {
   readings: OdometerReading[]
 }
 
+/** Начална точка за изминато разстояние.
+ *  includeInitial („От началото"): началният км на автомобила, ако е въведен;
+ *  иначе (или при период) — първият въведен километраж от записите. */
+export const firstOdometer = (v: Vehicle, d: AllData, includeInitial: boolean): number => {
+  if (includeInitial && v.initialOdometer > 0) return v.initialOdometer
+  const vals = [
+    ...d.refuels.map((r) => r.odometer),
+    ...d.expenses.map((e) => e.odometer ?? 0),
+    ...d.incomes.map((i) => i.odometer ?? 0),
+    ...d.trips.map((t) => t.startOdometer),
+    ...d.readings.map((r) => r.odometer),
+  ].filter((n) => n > 0)
+  return vals.length ? Math.min(...vals) : v.initialOdometer
+}
+
 /** Текущ километраж = максимумът от всички въведени стойности. */
 export const currentOdometer = (v: Vehicle, d: AllData): number => {
   const vals = [
@@ -118,16 +133,16 @@ const allDates = (d: AllData): string[] => [
   ...d.readings.map((r) => r.date),
 ]
 
-export const computeStats = (v: Vehicle, d: AllData): VehicleStats => {
+/** periodBounded: true при доклад/справка за период — разстоянието е мин→макс км от записите
+ *  в периода; false („От началото") — от първия въведен км, вкл. началния на автомобила. */
+export const computeStats = (v: Vehicle, d: AllData, periodBounded = false): VehicleStats => {
   const totalFuelCost = d.refuels.reduce((s, r) => s + r.total, 0)
   const totalExpenseCost = d.expenses.reduce((s, e) => s + e.cost, 0)
   const totalIncome = d.incomes.reduce((s, i) => s + i.amount, 0)
   const totalLiters = d.refuels.reduce((s, r) => s + r.liters, 0)
 
   const odo = currentOdometer(v, d)
-  const sorted = sortRefuels(d.refuels)
-  const minOdo = sorted.length ? Math.min(sorted[0].odometer, v.initialOdometer || sorted[0].odometer) : v.initialOdometer
-  const totalDistance = Math.max(0, odo - minOdo)
+  const totalDistance = Math.max(0, odo - firstOdometer(v, d, !periodBounded))
 
   // разход по гориво
   const byFuel: FuelStats[] = v.fuels.map((fuel) => {

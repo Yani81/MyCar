@@ -145,7 +145,7 @@ export function exportVehiclePDF(data: ExportData) {
     )
   }
 
-  const stats = computeStats(vehicle, { refuels, expenses, incomes, trips, readings })
+  const stats = computeStats(vehicle, { refuels, expenses, incomes, trips, readings }, !!data.period)
   const mainFuel = vehicle.fuels[0]
   const consUnit = consUnitLabel(mainFuel)
 
