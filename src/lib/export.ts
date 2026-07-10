@@ -175,7 +175,7 @@ export function exportVehiclePDF(data: ExportData) {
     ${htmlTable('Приходи', ['Дата', 'Км', 'Категория', 'Сума (€)', 'Бележка'],
       incomes.map((i) => [isoToBg(i.date.slice(0, 10)), i.odometer ? fmt0(i.odometer) : '', i.category, fmt2(i.amount), i.notes ?? '']))}
     ${htmlTable('Маршрути', ['Дата', 'От', 'До', 'Начало км', 'Край км', 'Разстояние (км)', 'Сума (€)', 'Цел'],
-      trips.map((t) => [isoToBg(t.date.slice(0, 10)), t.origin, t.destination, fmt0(t.startOdometer), fmt0(t.endOdometer), fmt0(Math.max(0, t.endOdometer - t.startOdometer)), fmt2(t.total), t.reason ?? '']))}
+      trips.map((t) => [isoToBg(t.date.slice(0, 10)), t.origin, t.roundTrip ? `${t.destination} и обратно` : t.destination, fmt0(t.startOdometer), fmt0(t.endOdometer), fmt0(Math.max(0, t.endOdometer - t.startOdometer)), fmt2(t.total), t.reason ?? '']))}
     ${htmlTable('Километраж', ['Дата', 'Км'],
       readings.map((r) => [isoToBg(r.date.slice(0, 10)), fmt0(r.odometer)]))}
   `

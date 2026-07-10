@@ -302,7 +302,7 @@ export function HistoryPage() {
 
     trips.filter(t => t.vehicleId === v.id).forEach(t => items.push({
       id: t.id, date: t.date, odo: t.endOdometer, color: ENTRY_COLORS.trip,
-      title: `${t.origin} → ${t.destination}`,
+      title: `${t.origin} ${t.roundTrip ? '⇄' : '→'} ${t.destination}`,
       amount: t.total > 0 ? t.total : null, positive: false,
       open: { type: 'trip', entry: t },
       entry: t,

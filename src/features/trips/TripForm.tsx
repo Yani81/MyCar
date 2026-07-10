@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Modal } from '../../components/ui/Modal'
-import { Field, Row, inputClass } from '../../components/ui/Field'
+import { Field, Row, inputClass, Toggle } from '../../components/ui/Field'
 import { FormFooter } from '../../components/ui/FormFooter'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { todayISO, todayTimeISO, km, money, num, toNumStr } from '../../lib/format'
@@ -38,6 +38,7 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
   )
   const [reason, setReason] = useState(edit?.reason ?? '')
   const [notes, setNotes] = useState(edit?.notes ?? '')
+  const [roundTrip, setRoundTrip] = useState(edit?.roundTrip ?? false)
 
   const [locating, setLocating] = useState<'origin' | 'destination' | null>(null)
 
@@ -62,6 +63,7 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
       date: date + (time ? 'T' + time : ''),
       startOdometer: Number(startOdometer),
       endOdometer: Number(endOdometer),
+      roundTrip: roundTrip || undefined,
       costPerKm: Number(costPerKm) || undefined,
       total,
       reason: reason.trim() || undefined,
@@ -96,6 +98,7 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
           </button>
         </div>
       </Field>
+      <Toggle checked={roundTrip} onChange={setRoundTrip} label="Отиване и връщане (обратно до началната точка)" />
       <Row>
         <Field label="Дата">
           <input className={inputClass} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -108,10 +111,21 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
         <Field label="Начален км">
           <input className={inputClass} inputMode="numeric" value={startOdometer} onChange={(e) => setStart(e.target.value)} placeholder="0" />
         </Field>
-        <Field label="Краен км">
+        <Field label={roundTrip ? 'Краен км (след връщането)' : 'Краен км'}>
           <input className={inputClass} inputMode="numeric" value={endOdometer} onChange={(e) => setEnd(e.target.value)} placeholder="0" />
         </Field>
       </Row>
+      {roundTrip && distance > 0 && (
+        <div style={{ display: 'flex', marginTop: -4 }}>
+          <button
+            type="button"
+            className={styles.chip}
+            onClick={() => setEnd(String(Number(startOdometer) + 2 * distance))}
+          >
+            ×2 — въведох само отиването ({km(distance)} → {km(2 * distance)})
+          </button>
+        </div>
+      )}
       <Row>
         <Field label="Стойност / км (по избор)">
           <input className={inputClass} inputMode="decimal" value={costPerKm} onChange={(e) => setCostPerKm(toNumStr(e.target.value))} placeholder="0.000" />

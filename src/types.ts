@@ -92,6 +92,8 @@ export interface Trip {
   date: string
   startOdometer: number
   endOdometer: number
+  /** Двупосочен маршрут (отиване и връщане до началната точка) */
+  roundTrip?: boolean
   costPerKm?: number
   total: number
   reason?: string
