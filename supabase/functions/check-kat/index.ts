@@ -3,6 +3,17 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+
+const BROWSER_HEADERS = {
+  'User-Agent': UA,
+  'Accept-Language': 'bg-BG,bg;q=0.9,en;q=0.8',
+  'Sec-Fetch-Site': 'same-origin',
+  'Sec-Fetch-Mode': 'cors',
+  'Sec-Fetch-Dest': 'empty',
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
@@ -10,10 +21,25 @@ Deno.serve(async (req: Request) => {
     const { egn = '', license = '' } = await req.json()
     const url = `https://e-uslugi.mvr.bg/api/Obligations/AND?mode=1&obligedPersonIdent=${encodeURIComponent(egn)}&drivingLicenceNumber=${encodeURIComponent(license)}`
 
+    // Имитация на браузърна сесия: първо страницата (сесийна бисквитка), после API-то
+    let cookie = ''
+    try {
+      const pageResp = await fetch('https://e-uslugi.mvr.bg/services/obligations', {
+        headers: { ...BROWSER_HEADERS, Accept: 'text/html,application/xhtml+xml', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Site': 'none' },
+        signal: AbortSignal.timeout(10000),
+      })
+      cookie = pageResp.headers.get('set-cookie')?.match(/EAUSessionID=[^;]+/)?.[0] ?? ''
+      await pageResp.body?.cancel()
+    } catch {
+      // страницата не е задължителна — API-то се опитва и без бисквитка
+    }
+
     const resp = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0',
+        ...BROWSER_HEADERS,
         Accept: 'application/json',
+        Referer: 'https://e-uslugi.mvr.bg/services/obligations',
+        ...(cookie ? { Cookie: cookie } : {}),
       },
       signal: AbortSignal.timeout(20000),
     }).catch(() => {
