@@ -379,6 +379,7 @@ export function HistoryPage() {
           {e.tireBrand && <DetailRow label="Марка гуми" value={e.tireBrand} />}
           {e.tireSize && <DetailRow label="Размер гуми" value={e.tireSize} />}
           {e.tireDot && <DetailRow label="DOT" value={e.tireDot} />}
+          {e.vignetteValidUntil && <DetailRow label="Валидна до" value={dateShort(e.vignetteValidUntil)} />}
           {e.insuranceType && <DetailRow label="Вид застраховка" value={e.insuranceType} />}
           {e.insuranceCompany && <DetailRow label="Застраховател" value={e.insuranceCompany} />}
           {e.installments?.length

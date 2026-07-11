@@ -52,6 +52,8 @@ export interface Expense {
   receiptImage?: string
   insuranceType?: string
   insuranceCompany?: string
+  /** Валидност на винетка (ISO дата) */
+  vignetteValidUntil?: string
   insuranceInstallments?: number
   installments?: InsuranceInstallment[]
   oilType?: string

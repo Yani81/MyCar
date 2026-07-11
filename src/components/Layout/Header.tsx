@@ -11,17 +11,9 @@ import { downloadBackupJSON, parseBackupJSON } from '../../lib/backup'
 import { saveToCloud, getLastSyncAt } from '../../lib/sync'
 import { supabase } from '../../lib/supabase'
 import type { Tab } from './BottomNav'
+import { normalizePlate } from '../../lib/plate'
 
 type ModalView = 'none' | 'garage' | 'add' | 'edit' | 'settings' | 'account' | 'export' | 'set-theme' | 'set-notify' | 'set-backup'
-
-const PLATE_MAP: Record<string, string> = {
-  'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M',
-  'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'У': 'U', 'Х': 'X',
-}
-
-function normalizePlate(val: string): string {
-  return val.toUpperCase().replace(/./gu, (c) => PLATE_MAP[c] ?? c)
-}
 
 export function Header({ go }: { go: (t: Tab) => void }) {
   const vehicles = useStore((s) => s.vehicles)

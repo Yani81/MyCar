@@ -18,9 +18,9 @@ export function Forms() {
     case 'refuel':
       return <RefuelForm key={key} vehicleId={v.id} edit={form.entry} onClose={close} />
     case 'expense':
-      return <ExpenseForm key={key} vehicleId={v.id} edit={form.entry} mode="expense" onClose={close} />
+      return <ExpenseForm key={key} vehicleId={v.id} edit={form.entry} draft={form.draft} mode="expense" onClose={close} />
     case 'service':
-      return <ExpenseForm key={key} vehicleId={v.id} edit={form.entry} mode="service" onClose={close} />
+      return <ExpenseForm key={key} vehicleId={v.id} edit={form.entry} draft={form.draft} mode="service" onClose={close} />
     case 'income':
       return <IncomeForm key={key} vehicleId={v.id} edit={form.entry} onClose={close} />
     case 'trip':

@@ -39,11 +39,13 @@ const installmentDates = (n: number, baseDate: string): string[] => {
 export function ExpenseForm({
   vehicleId,
   edit,
+  draft,
   mode,
   onClose,
 }: {
   vehicleId: string
   edit: Expense | null
+  draft?: Partial<Expense>
   mode: ExpenseKind
   onClose: () => void
 }) {
@@ -66,7 +68,7 @@ export function ExpenseForm({
 
   const [date, setDate] = useState((edit?.date ?? todayISO()).slice(0, 10))
   const [categoryId, setCategoryId] = useState(() => {
-    if (!edit) return ''
+    if (!edit) return draft?.category ? EXPENSE_CATEGORIES.find((c) => c.label === draft.category)?.id ?? '' : ''
     // Стари записи с преименувани категории сочат новите вградени
     const builtin = EXPENSE_CATEGORIES.find(
       (c) =>
@@ -113,6 +115,9 @@ export function ExpenseForm({
     edit?.insuranceCompany && !DEFAULT_INSURERS.includes(edit.insuranceCompany) ? edit.insuranceCompany : ''
   )
   const insuranceCompany = insurerPick === '__new__' ? insurerText : insurerPick
+
+  // Vignette specific
+  const [vignetteValid, setVignetteValid] = useState(edit?.vignetteValidUntil ?? draft?.vignetteValidUntil ?? '')
 
   interface InstallmentRow { amount: string; dueDate: string; paid: boolean }
   const initInstallments = (): InstallmentRow[] => {
@@ -173,6 +178,7 @@ export function ExpenseForm({
   const isTires = cat?.id === 'tires'
   const isGenericRepair = cat?.id === 'service'
   const isInsurance = cat?.id === 'insurance'
+  const isVignette = cat?.id === 'vignette'
   const showReminderDate = reminderBasis === 'date' || reminderBasis === 'both'
   const showReminderOdo = reminderBasis === 'odometer' || reminderBasis === 'both'
 
@@ -230,9 +236,22 @@ export function ExpenseForm({
         tireSize: tireSize.trim() || undefined,
         tireDot: tireDot.trim() || undefined,
       }),
+      ...(isVignette && {
+        vignetteValidUntil: vignetteValid || undefined,
+      }),
     }
     if (edit) updateExpense(edit.id, payload)
     else addExpense(payload)
+
+    if (isVignette && !edit && vignetteValid) {
+      addReminder({
+        vehicleId,
+        title: 'Винетката изтича',
+        basis: 'date',
+        dueDate: vignetteValid,
+        done: false,
+      })
+    }
 
     if (isInsurance && !edit) {
       const withDates = installments.filter((r) => !!r.dueDate && !r.paid)
@@ -581,6 +600,13 @@ export function ExpenseForm({
           {!isInsurance && (
             <Field label="Сума (€)">
               <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(toNumStr(e.target.value))} placeholder="0.00" />
+            </Field>
+          )}
+
+          {/* Vignette specific */}
+          {isVignette && (
+            <Field label="Валидна до" hint="създава напомняне за изтичането">
+              <input className={inputClass} type="date" value={vignetteValid} onChange={(e) => setVignetteValid(e.target.value)} />
             </Field>
           )}
 

@@ -7,8 +7,20 @@ import { Modal } from '../../components/ui/Modal'
 import { inputClass } from '../../components/ui/Field'
 import { dateShort } from '../../lib/format'
 import { ENTRY_COLORS } from '../../types'
+import { useUI } from '../../store/useUI'
+import { plateForApi } from '../../lib/plate'
+
+/** „YYYY-MM-DD" или „дд.мм.гггг" → ISO дата; при неуспех undefined. */
+function toISODate(s: string | undefined): string | undefined {
+  if (!s) return undefined
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/)
+  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+  return undefined
+}
 
 export function ChecksPage({ go }: { go: (t: Tab) => void }) {
+  const openForm = useUI((s) => s.openForm)
   const v = useActiveVehicle()
   const vehicleChecks = useStore((s) => s.vehicleChecks)
   const saveCheck = useStore((s) => s.saveCheck)
@@ -55,7 +67,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
   const checkGO = async () => {
     setGoLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke('check-go', { body: { plate: v.plate ?? '' } })
+      const { data, error } = await supabase.functions.invoke('check-go', { body: { plate: plateForApi(v.plate ?? '') } })
       if (error) throw error
       const d = data as { valid: boolean; message: string; validUntil?: string }
       saveCheck(v.id, 'go', { valid: d.valid, validUntil: d.validUntil, checkedAt: today, message: d.message })
@@ -69,7 +81,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
   const checkGTP = async () => {
     setGtpLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke('check-gtp', { body: { plate: v.plate ?? '' } })
+      const { data, error } = await supabase.functions.invoke('check-gtp', { body: { plate: plateForApi(v.plate ?? '') } })
       if (error) throw error
       const d = data as { valid: boolean; message: string; validUntil?: string }
       saveCheck(v.id, 'gtp', { valid: d.valid, validUntil: d.validUntil, checkedAt: today, message: d.message })
@@ -83,7 +95,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
   const checkVignette = async () => {
     setVignetteLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke('check-vignette', { body: { plate: v.plate ?? '', country: 'BG' } })
+      const { data, error } = await supabase.functions.invoke('check-vignette', { body: { plate: plateForApi(v.plate ?? ''), country: 'BG' } })
       if (error) throw error
       const d = data as { valid: boolean; message: string; validUntil?: string }
       saveCheck(v.id, 'vignette', { valid: d.valid, validUntil: d.validUntil, checkedAt: today, message: d.message })
@@ -100,7 +112,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
     setDelictLoading(true)
     try {
       const { data, error } = await supabase.functions.invoke('check-delict', {
-        body: { plate: v.plate ?? '', egn: egnInput.trim(), country: 'BG' },
+        body: { plate: plateForApi(v.plate ?? ''), egn: egnInput.trim(), country: 'BG' },
       })
       if (error) throw error
       const d = data as { hasDelicts: boolean; count: number; message: string }
@@ -142,7 +154,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
       loading: goLoading,
       onCheck: checkGO,
       formatSub: (r: typeof checks.go) =>
-        r ? (r.valid && r.validUntil ? `Валидна до ${r.validUntil}` : r.valid ? 'Валидна' : 'Няма валидна застраховка') : v.plate || 'Натисни Провери',
+        r ? (r.valid && r.validUntil ? `Валидна до ${r.validUntil}` : r.valid ? 'Валидна' : r.message.startsWith('Грешка') ? r.message : 'Няма валидна застраховка') : v.plate || 'Натисни Провери',
     },
     {
       key: 'gtp' as const,
@@ -151,7 +163,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
       loading: gtpLoading,
       onCheck: checkGTP,
       formatSub: (r: typeof checks.gtp) =>
-        r ? (r.valid && r.validUntil ? `Валиден до ${r.validUntil}` : r.valid ? 'Валиден' : 'Няма валиден ГТП') : v.plate || 'Натисни Провери',
+        r ? (r.valid && r.validUntil ? `Валиден до ${r.validUntil}` : r.valid ? 'Валиден' : r.message.startsWith('Грешка') ? r.message : 'Няма валиден ГТП') : v.plate || 'Натисни Провери',
     },
     {
       key: 'vignette' as const,
@@ -160,7 +172,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
       loading: vignetteLoading,
       onCheck: checkVignette,
       formatSub: (r: typeof checks.vignette) =>
-        r ? (r.valid && r.validUntil ? `Валидна до ${r.validUntil}` : r.valid ? 'Валидна' : 'Няма валидна винетка') : v.plate || 'Натисни Провери',
+        r ? (r.valid && r.validUntil ? `Валидна до ${r.validUntil}` : r.valid ? 'Валидна' : r.message.startsWith('Грешка') ? r.message : 'Няма валидна винетка') : v.plate || 'Натисни Провери',
     },
     {
       key: 'delict' as const,
@@ -209,6 +221,20 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
                 <span className={styles.cardCheckedAt}>
                   Проверено на {dateShort(r.checkedAt)}
                 </span>
+              )}
+              {key === 'vignette' && r?.valid && (
+                <button
+                  className={styles.addExpenseLink}
+                  onClick={() =>
+                    openForm({
+                      type: 'expense',
+                      entry: null,
+                      draft: { category: 'Винетка', vignetteValidUntil: toISODate(r.validUntil) },
+                    })
+                  }
+                >
+                  + Добави като разход
+                </button>
               )}
             </div>
             <button

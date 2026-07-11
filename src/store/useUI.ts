@@ -3,8 +3,8 @@ import type { Refuel, Expense, Income, Trip, OdometerReading, Reminder } from '.
 
 export type FormOpen =
   | { type: 'refuel'; entry: Refuel | null }
-  | { type: 'expense'; entry: Expense | null }
-  | { type: 'service'; entry: Expense | null }
+  | { type: 'expense'; entry: Expense | null; draft?: Partial<Expense> }
+  | { type: 'service'; entry: Expense | null; draft?: Partial<Expense> }
   | { type: 'income'; entry: Income | null }
   | { type: 'trip'; entry: Trip | null }
   | { type: 'odometer'; entry: OdometerReading | null }
