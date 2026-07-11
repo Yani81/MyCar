@@ -18,13 +18,18 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary)
 }
 
+/** РТА сайтът не отговаря — няма смисъл от повторни опити. */
+class RtaDownError extends Error {}
+
 async function solveCaptcha(): Promise<{ captcha: string; session: string }> {
   const rand = Math.round(Math.random() * 9999)
 
   const captchaResp = await fetch(
     `${CHECK_URL}?captcha/inspection=1&rand=${rand}`,
-    { headers: { 'User-Agent': UA, Accept: 'image/*,*/*' } }
-  )
+    { headers: { 'User-Agent': UA, Accept: 'image/*,*/*' }, signal: AbortSignal.timeout(15000) }
+  ).catch(() => {
+    throw new RtaDownError()
+  })
 
   // deno-lint-ignore no-explicit-any
   const setCookieHeaders: string[] =
@@ -53,6 +58,7 @@ async function solveCaptcha(): Promise<{ captcha: string; session: string }> {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: ocrBody.toString(),
+    signal: AbortSignal.timeout(15000),
   })
 
   const ocrJson = await ocrResp.json() as { ParsedResults?: Array<{ ParsedText: string }> }
@@ -86,6 +92,9 @@ Deno.serve(async (req: Request) => {
           Origin: 'https://rta.government.bg',
         },
         body: new URLSearchParams({ regNum: plate, captcha }).toString(),
+        signal: AbortSignal.timeout(15000),
+      }).catch(() => {
+        throw new RtaDownError()
       })
 
       const rawText = await checkResp.text()
@@ -125,6 +134,12 @@ Deno.serve(async (req: Request) => {
 
     throw new Error('Не успяхме да решим CAPTCHA след 4 опита')
   } catch (err) {
+    if (err instanceof RtaDownError) {
+      return new Response(
+        JSON.stringify({ valid: false, message: 'Грешка: сайтът за ГТП проверки (ИААА) не отговаря — опитай по-късно.' }),
+        { headers: { ...CORS, 'Content-Type': 'application/json' } }
+      )
+    }
     return new Response(
       JSON.stringify({ valid: false, message: String(err) }),
       { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
