@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FunctionRegion } from '@supabase/supabase-js'
 import styles from './ChecksPage.module.css'
 import { useActiveVehicle, useStore } from '../../store/useStore'
 import type { Tab } from '../../components/Layout/BottomNav'
@@ -9,6 +10,10 @@ import { dateShort } from '../../lib/format'
 import { ENTRY_COLORS } from '../../types'
 import { useUI } from '../../store/useUI'
 import { plateForApi } from '../../lib/plate'
+
+/** МВР блокира някои Supabase региони (напр. Цюрих, където edge функцията се
+ *  изпълнява по подразбиране за част от клиентите) — Франкфурт минава. */
+const CHECK_REGION = FunctionRegion.EuCentral1
 
 /** „YYYY-MM-DD" или „дд.мм.гггг" → ISO дата; при неуспех undefined. */
 function toISODate(s: string | undefined): string | undefined {
@@ -67,7 +72,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
   const checkGO = async () => {
     setGoLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke('check-go', { body: { plate: plateForApi(v.plate ?? '') } })
+      const { data, error } = await supabase.functions.invoke('check-go', { body: { plate: plateForApi(v.plate ?? '') }, region: CHECK_REGION })
       if (error) throw error
       const d = data as { valid: boolean; message: string; validUntil?: string }
       saveCheck(v.id, 'go', { valid: d.valid, validUntil: d.validUntil, checkedAt: today, message: d.message })
@@ -81,7 +86,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
   const checkGTP = async () => {
     setGtpLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke('check-gtp', { body: { plate: plateForApi(v.plate ?? '') } })
+      const { data, error } = await supabase.functions.invoke('check-gtp', { body: { plate: plateForApi(v.plate ?? '') }, region: CHECK_REGION })
       if (error) throw error
       const d = data as { valid: boolean; message: string; validUntil?: string }
       saveCheck(v.id, 'gtp', { valid: d.valid, validUntil: d.validUntil, checkedAt: today, message: d.message })
@@ -95,7 +100,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
   const checkVignette = async () => {
     setVignetteLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke('check-vignette', { body: { plate: plateForApi(v.plate ?? ''), country: 'BG' } })
+      const { data, error } = await supabase.functions.invoke('check-vignette', { body: { plate: plateForApi(v.plate ?? ''), country: 'BG' }, region: CHECK_REGION })
       if (error) throw error
       const d = data as { valid: boolean; message: string; validUntil?: string }
       saveCheck(v.id, 'vignette', { valid: d.valid, validUntil: d.validUntil, checkedAt: today, message: d.message })
@@ -113,6 +118,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
     try {
       const { data, error } = await supabase.functions.invoke('check-delict', {
         body: { plate: plateForApi(v.plate ?? ''), egn: egnInput.trim(), country: 'BG' },
+        region: CHECK_REGION,
       })
       if (error) throw error
       const d = data as { hasDelicts: boolean; count: number; message: string }
@@ -135,6 +141,7 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
     try {
       const { data, error } = await supabase.functions.invoke('check-kat', {
         body: { egn: egnVal, license: licVal },
+        region: CHECK_REGION,
       })
       if (error) throw error
       const d = data as { hasObligations: boolean; count: number; message: string }
