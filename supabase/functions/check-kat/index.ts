@@ -15,6 +15,9 @@ Deno.serve(async (req: Request) => {
         'User-Agent': 'Mozilla/5.0',
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(20000),
+    }).catch(() => {
+      throw new Error('__mvr_down__')
     })
 
     const data = await resp.json() as {
@@ -45,6 +48,12 @@ Deno.serve(async (req: Request) => {
     const message = count === 0 ? 'Няма задължения' : `${count} ${count === 1 ? 'задължение' : 'задължения'}`
     return Response.json({ hasObligations: count > 0, count, message }, { headers: CORS })
   } catch (err) {
+    if (err instanceof Error && err.message === '__mvr_down__') {
+      return Response.json(
+        { hasObligations: false, count: 0, message: 'Грешка: сайтът на МВР не отговаря — опитай по-късно.' },
+        { headers: CORS }
+      )
+    }
     return new Response(
       JSON.stringify({ hasObligations: false, count: 0, message: String(err) }),
       { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
