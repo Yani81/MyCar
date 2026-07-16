@@ -44,18 +44,22 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
       ...data.refuels.map((r) => ({ id: r.id, Icon: IconFuel, cls: 'fuel', date: r.date, odo: r.odometer, label: `${num(r.liters, 2)} ${FUEL_UNITS[r.fuelType]} · ${num(r.pricePerLiter, 2)} €/${FUEL_UNITS[r.fuelType]}`, sub: `${FUEL_LABELS[r.fuelType]}${r.station ? ` · ${r.station}` : ''}`, amount: r.total, pos: false, open: { type: 'refuel', entry: r } as FormOpen })),
       ...data.expenses.map((e) => ({ id: e.id, Icon: IconWrench, cls: e.kind === 'service' ? 'service' : 'exp', date: e.date, odo: e.odometer ?? 0, label: e.title || e.category, sub: e.place || '', amount: e.cost, pos: false, open: { type: e.kind === 'service' ? 'service' : 'expense', entry: e } as FormOpen })),
       ...data.incomes.map((i) => ({ id: i.id, Icon: IconIncome, cls: 'income', date: i.date, odo: 0, label: i.category, sub: i.notes || '', amount: i.amount, pos: true, open: { type: 'income', entry: i } as FormOpen })),
-      ...data.trips.map((t) => ({ id: t.id, Icon: IconRoute, cls: 'trip', date: t.date, odo: t.endOdometer, label: `${t.origin} ${t.roundTrip ? '⇄' : '→'} ${t.destination}`, sub: km(t.endOdometer - t.startOdometer), amount: t.total, pos: false, open: { type: 'trip', entry: t } as FormOpen })),
+      ...data.trips.map((t) => ({ id: t.id, Icon: IconRoute, cls: 'trip', date: t.date, odo: t.endOdometer ?? t.startOdometer, label: `${t.origin} ${t.roundTrip ? '⇄' : '→'} ${t.destination ?? '…'}`, sub: t.endOdometer != null ? km(t.endOdometer - t.startOdometer) : 'в движение', amount: t.total, pos: false, open: { type: 'trip', entry: t } as FormOpen })),
     ]
       .sort((a, b) => b.date.localeCompare(a.date) || b.odo - a.odo)
       .slice(0, 6)
 
     const mileage = serviceMileage(data.expenses, stats.currentOdometer)
 
-    return { stats, nextRem, recent, lastRefuel, lastKm, mileage }
+    const activeTrip = data.trips
+      .filter((t) => t.endOdometer == null)
+      .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
+
+    return { stats, nextRem, recent, lastRefuel, lastKm, mileage, activeTrip }
   }, [v, refuels, expenses, incomes, trips, readings, reminders])
 
   if (!v || !d) return null
-  const { stats, nextRem, recent, mileage } = d
+  const { stats, nextRem, recent, mileage, activeTrip } = d
   const hasMileage = Object.keys(mileage.tireKm).length > 0 || mileage.sinceOil !== null || mileage.sinceBelts !== null
 
   const checks = vehicleChecks[v.id] ?? {}
@@ -82,6 +86,19 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
           {stats.lastConsumption !== null ? `Последно: ${num(stats.lastConsumption, 2)} ${consUnitLabel(v.fuels[0])}` : 'Добави 2 пълни зареждания за разход'}
         </div>
       </div>
+
+      {activeTrip && (
+        <button className={styles.activeTrip} onClick={() => openForm({ type: 'trip', entry: activeTrip })}>
+          <span className={styles.activeTripIcon}><IconRoute width={20} height={20} /></span>
+          <div className={styles.activeTripText}>
+            <span className={styles.activeTripTitle}>Маршрут в движение</span>
+            <span className={styles.activeTripSub}>
+              {activeTrip.origin} → … · Начало: {km(activeTrip.startOdometer)} · {dateShort(activeTrip.date)}
+            </span>
+          </div>
+          <span className={styles.activeTripBtn}>Пристигнах</span>
+        </button>
+      )}
 
       <div className={styles.grid}>
         <Stat label="Баланс" value={money(stats.balance)} />

@@ -301,8 +301,8 @@ export function HistoryPage() {
     }))
 
     trips.filter(t => t.vehicleId === v.id).forEach(t => items.push({
-      id: t.id, date: t.date, odo: t.endOdometer, color: ENTRY_COLORS.trip,
-      title: `${t.origin} ${t.roundTrip ? '⇄' : '→'} ${t.destination}`,
+      id: t.id, date: t.date, odo: t.endOdometer ?? t.startOdometer, color: ENTRY_COLORS.trip,
+      title: `${t.origin} ${t.roundTrip ? '⇄' : '→'} ${t.destination ?? '…'}`,
       amount: t.total > 0 ? t.total : null, positive: false,
       open: { type: 'trip', entry: t },
       entry: t,
@@ -422,16 +422,16 @@ export function HistoryPage() {
 
     if (type === 'trip') {
       const t = it.entry as Trip
-      const dist = Math.max(0, t.endOdometer - t.startOdometer)
+      const inProgress = t.endOdometer == null
       return (
         <div className={styles.details}>
           {timeShort(it.date) && <DetailRow label="Час" value={timeShort(it.date)} />}
           <DetailRow label="Начало" value={km(t.startOdometer)} />
-          <DetailRow label="Край" value={km(t.endOdometer)} />
-          <DetailRow label="Разстояние" value={km(dist)} />
+          <DetailRow label="Край" value={inProgress ? '—' : km(t.endOdometer!)} />
+          <DetailRow label="Разстояние" value={inProgress ? 'в движение' : km(Math.max(0, t.endOdometer! - t.startOdometer))} />
           {t.reason && <DetailRow label="Причина" value={t.reason} />}
           {t.notes && <DetailRow label="Бележка" value={t.notes} />}
-          <button className={styles.editBtn} onClick={() => openForm(it.open)}>Редактирай</button>
+          <button className={styles.editBtn} onClick={() => openForm(it.open)}>{inProgress ? 'Пристигнах' : 'Редактирай'}</button>
         </div>
       )
     }

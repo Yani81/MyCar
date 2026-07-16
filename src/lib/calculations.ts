@@ -88,7 +88,7 @@ export const currentOdometer = (v: Vehicle, d: AllData): number => {
     ...d.refuels.map((r) => r.odometer),
     ...d.expenses.map((e) => e.odometer ?? 0),
     ...d.incomes.map((i) => i.odometer ?? 0),
-    ...d.trips.map((t) => t.endOdometer),
+    ...d.trips.map((t) => t.endOdometer ?? t.startOdometer),
     ...d.readings.map((r) => r.odometer),
   ].filter((n) => n > 0)
   return vals.length ? Math.max(...vals) : v.initialOdometer

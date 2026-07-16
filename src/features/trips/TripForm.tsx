@@ -28,7 +28,7 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
   const [date, setDate] = useState((edit?.date ?? todayISO()).slice(0, 10))
   const [time, setTime] = useState(edit?.date && edit.date.length > 10 ? edit.date.slice(11, 16) : todayTimeISO())
   const [startOdometer, setStart] = useState(edit ? String(edit.startOdometer) : '')
-  const [endOdometer, setEnd] = useState(edit ? String(edit.endOdometer) : '')
+  const [endOdometer, setEnd] = useState(edit?.endOdometer != null ? String(edit.endOdometer) : '')
   const [costPerKm, setCostPerKm] = useState(
     edit?.costPerKm
       ? String(edit.costPerKm)
@@ -52,17 +52,20 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
 
   const distance = Math.max(0, Number(endOdometer) - Number(startOdometer))
   const total = distance * (Number(costPerKm) || 0)
-  const valid = origin.trim() !== '' && destination.trim() !== '' && distance > 0
+  // Дестинация и краен км са двойка: и двете празни = маршрут „в движение", иначе и двете попълнени
+  const finishing = destination.trim() !== '' || endOdometer !== ''
+  const valid = origin.trim() !== '' && Number(startOdometer) > 0 &&
+    (!finishing || (destination.trim() !== '' && distance > 0))
 
   const submit = () => {
     if (!valid) return
     const payload = {
       vehicleId,
       origin: origin.trim(),
-      destination: destination.trim(),
+      destination: destination.trim() || undefined,
       date: date + (time ? 'T' + time : ''),
       startOdometer: Number(startOdometer),
-      endOdometer: Number(endOdometer),
+      endOdometer: endOdometer !== '' ? Number(endOdometer) : undefined,
       roundTrip: roundTrip || undefined,
       costPerKm: Number(costPerKm) || undefined,
       total,
@@ -77,7 +80,7 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
   return (
     <Modal
       open
-      title={edit ? 'Редакция на маршрут' : 'Нов маршрут'}
+      title={edit ? (edit.endOdometer == null ? 'Пристигане' : 'Редакция на маршрут') : 'Нов маршрут'}
       color={ENTRY_COLORS.trip}
       onClose={onClose}
       footer={<FormFooter valid={valid} edit={!!edit} onSubmit={submit} onDelete={edit ? () => { removeTrip(edit.id); onClose() } : undefined} deleteMsg="Изтриване на маршрута?" color={ENTRY_COLORS.trip} />}
@@ -90,7 +93,7 @@ export function TripForm({ vehicleId, edit, onClose }: { vehicleId: string; edit
           </button>
         </div>
       </Field>
-      <Field label="Крайна точка">
+      <Field label="Крайна точка (или допълни при пристигане)">
         <div className={styles.locWrap}>
           <input className={inputClass} value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="напр. София" />
           <button type="button" className={styles.locBtn} title="Попълни от локацията" disabled={locating !== null} onClick={() => fillFromLocation('destination')}>

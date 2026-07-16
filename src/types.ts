@@ -90,10 +90,12 @@ export interface Trip {
   id: string
   vehicleId: string
   origin: string
-  destination: string
+  /** Липсва при маршрут „в движение" — допълва се при пристигане */
+  destination?: string
   date: string
   startOdometer: number
-  endOdometer: number
+  /** Липсва при маршрут „в движение" — допълва се при пристигане */
+  endOdometer?: number
   /** Двупосочен маршрут (отиване и връщане до началната точка) */
   roundTrip?: boolean
   costPerKm?: number
