@@ -23,7 +23,9 @@ self.addEventListener('fetch', (e) => {
 
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req)
+      // no-cache: заобикаля HTTP кеша на GitHub Pages (max-age=600) —
+      // ревалидация с ETag при всяко отваряне, новото се вижда веднага след деплой
+      fetch(req, { cache: 'no-cache' })
         .then((res) => {
           const copy = res.clone()
           caches.open(CACHE).then((c) => c.put(req, copy))
