@@ -70,6 +70,10 @@ interface State {
   katCredentials: { egn: string; license: string } | null
   setKatCredentials: (creds: { egn: string; license: string } | null) => void
 
+  /** Автоматична дневна проверка за глоби КАТ/BGToll при отваряне; само на това устройство */
+  autoCheckFines: boolean
+  setAutoCheckFines: (on: boolean) => void
+
   serviceShops: string[]
   addServiceShop: (shop: string) => void
 
@@ -207,6 +211,9 @@ export const useStore = create<State>()(
 
         katCredentials: null,
         setKatCredentials: (creds) => set({ katCredentials: creds }),
+
+        autoCheckFines: false,
+        setAutoCheckFines: (autoCheckFines) => set({ autoCheckFines }),
 
         serviceShops: [],
         addServiceShop: (shop) =>

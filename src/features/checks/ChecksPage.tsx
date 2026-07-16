@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { FunctionRegion } from '@supabase/supabase-js'
 import styles from './ChecksPage.module.css'
 import { useActiveVehicle, useStore } from '../../store/useStore'
 import type { Tab } from '../../components/Layout/BottomNav'
@@ -10,10 +9,7 @@ import { dateShort } from '../../lib/format'
 import { ENTRY_COLORS } from '../../types'
 import { useUI } from '../../store/useUI'
 import { plateForApi } from '../../lib/plate'
-
-/** МВР блокира някои Supabase региони (напр. Цюрих, където edge функцията се
- *  изпълнява по подразбиране за част от клиентите) — Франкфурт минава. */
-const CHECK_REGION = FunctionRegion.EuCentral1
+import { CHECK_REGION, runDelictCheck, runKatCheck } from './runChecks'
 
 /** „YYYY-MM-DD" или „дд.мм.гггг" → ISO дата; при неуспех undefined. */
 function toISODate(s: string | undefined): string | undefined {
@@ -31,6 +27,8 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
   const saveCheck = useStore((s) => s.saveCheck)
   const katCredentials = useStore((s) => s.katCredentials)
   const setKatCredentials = useStore((s) => s.setKatCredentials)
+  const autoCheckFines = useStore((s) => s.autoCheckFines)
+  const setAutoCheckFines = useStore((s) => s.setAutoCheckFines)
 
   const [goLoading, setGoLoading] = useState(false)
   const [gtpLoading, setGtpLoading] = useState(false)
@@ -60,7 +58,17 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
 
   const handleKatToggle = (on: boolean) => {
     setSaveKat(on)
-    if (!on) setKatCredentials(null)
+    if (!on) {
+      setKatCredentials(null)
+      setAutoCheckFines(false)
+    }
+  }
+
+  const handleAutoToggle = (on: boolean) => {
+    setAutoCheckFines(on)
+    if (on && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
   }
 
   const closeKatModal = () => {
@@ -115,20 +123,10 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
     if (!egnInput.trim()) return
     setShowEgnModal(false)
     setDelictLoading(true)
-    try {
-      const { data, error } = await supabase.functions.invoke('check-delict', {
-        body: { plate: plateForApi(v.plate ?? ''), egn: egnInput.trim(), country: 'BG' },
-        region: CHECK_REGION,
-      })
-      if (error) throw error
-      const d = data as { hasDelicts: boolean; count: number; message: string }
-      saveCheck(v.id, 'delict', { valid: !d.hasDelicts, checkedAt: today, message: d.message })
-    } catch {
-      saveCheck(v.id, 'delict', { valid: false, checkedAt: today, message: 'Грешка при проверката.' })
-    } finally {
-      setDelictLoading(false)
-      setEgnInput('')
-    }
+    const r = await runDelictCheck(v.plate ?? '', egnInput.trim())
+    saveCheck(v.id, 'delict', r)
+    setDelictLoading(false)
+    setEgnInput('')
   }
 
   const checkKAT = async () => {
@@ -138,19 +136,9 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
     if (saveKat) setKatCredentials({ egn: egnVal, license: licVal })
     closeKatModal()
     setKatLoading(true)
-    try {
-      const { data, error } = await supabase.functions.invoke('check-kat', {
-        body: { egn: egnVal, license: licVal },
-        region: CHECK_REGION,
-      })
-      if (error) throw error
-      const d = data as { hasObligations: boolean; count: number; message: string }
-      saveCheck(v.id, 'kat', { valid: !d.hasObligations, checkedAt: today, message: d.message })
-    } catch {
-      saveCheck(v.id, 'kat', { valid: false, checkedAt: today, message: 'Грешка при проверката.' })
-    } finally {
-      setKatLoading(false)
-    }
+    const r = await runKatCheck(egnVal, licVal)
+    saveCheck(v.id, 'kat', r)
+    setKatLoading(false)
   }
 
   const cards = [
@@ -255,6 +243,26 @@ export function ChecksPage({ go }: { go: (t: Tab) => void }) {
           </div>
         )
       })}
+
+      <div className={styles.card} style={{ borderLeftColor: '#1976d2' }}>
+        <div className={styles.cardInfo}>
+          <span className={styles.cardTitle}>Автоматична проверка за глоби</span>
+          <span className={styles.cardSub} style={{ whiteSpace: 'normal' }}>
+            {katCredentials
+              ? 'КАТ и BGToll — веднъж дневно при отваряне'
+              : 'Първо запази ЕГН и СУМПС от „Глоби КАТ“'}
+          </span>
+        </div>
+        <label className={styles.toggle}>
+          <input
+            type="checkbox"
+            checked={autoCheckFines}
+            disabled={!katCredentials}
+            onChange={(e) => handleAutoToggle(e.target.checked)}
+          />
+          <span className={styles.toggleSlider} />
+        </label>
+      </div>
 
       <Modal
         open={showEgnModal}

@@ -5,6 +5,7 @@ import { Dashboard } from './features/dashboard/Dashboard'
 import { HistoryPage } from './features/history/HistoryPage'
 import { RemindersPage } from './features/reminders/RemindersPage'
 import { ChecksPage } from './features/checks/ChecksPage'
+import { useDailyFineCheck } from './features/checks/useDailyFineCheck'
 import { Forms } from './features/Forms'
 import { AddMenu } from './components/Layout/AddMenu'
 import { AuthPage } from './features/auth/AuthPage'
@@ -33,8 +34,11 @@ export default function App() {
   const loadCloudData = useStore((s) => s.loadCloudData)
   const reminders = useStore((s) => s.reminders)
   const notifyDaysAhead = useStore((s) => s.notifyDaysAhead)
+  const autoCheckFines = useStore((s) => s.autoCheckFines)
   const { user, loading } = useAuth()
   const prevUserId = useRef<string | null>(null)
+
+  useDailyFineCheck(!!user && autoCheckFines)
 
   useEffect(() => {
     applyTheme(theme)
