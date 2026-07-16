@@ -494,10 +494,6 @@ export function Header({ go }: { go: (t: Tab) => void }) {
         </div>
         <div className={styles.accList}>
           <div className={styles.accRow}><span>Версия</span><b>{__APP_VERSION__}</b></div>
-          <div className={styles.accRow}>
-            <span>Билд</span>
-            <b className="mono">{__BUILD_COMMIT__} · {new Date(__BUILD_DATE__ + 'T00:00:00').toLocaleDateString('bg-BG')}</b>
-          </div>
         </div>
       </Modal>
 
