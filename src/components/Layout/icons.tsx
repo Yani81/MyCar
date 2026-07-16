@@ -31,6 +31,13 @@ export const IconDocument = (p: SVGProps<SVGSVGElement>) => (
     <path d="M9 17h6" />
   </svg>
 )
+export const IconInfo = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5" />
+    <path d="M12 8h.01" />
+  </svg>
+)
 export const IconMenu = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <path d="M4 6h16" />

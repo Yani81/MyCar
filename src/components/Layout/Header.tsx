@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import styles from './Header.module.css'
-import { IconChevron, IconCar, IconTrash, IconPencil, IconMenu, IconGear, IconUser, IconGauge, IconDocument, IconBell, IconMoon, IconDownload } from './icons'
+import { IconChevron, IconCar, IconTrash, IconPencil, IconMenu, IconGear, IconUser, IconGauge, IconDocument, IconBell, IconMoon, IconDownload, IconInfo } from './icons'
 import { Modal } from '../ui/Modal'
 import { Field, Row, inputClass, selectClass, Segmented, CheckGroup } from '../ui/Field'
 import { useStore, useActiveVehicle } from '../../store/useStore'
@@ -13,7 +13,7 @@ import { supabase } from '../../lib/supabase'
 import type { Tab } from './BottomNav'
 import { normalizePlate } from '../../lib/plate'
 
-type ModalView = 'none' | 'garage' | 'add' | 'edit' | 'settings' | 'account' | 'export' | 'set-theme' | 'set-notify' | 'set-backup'
+type ModalView = 'none' | 'garage' | 'add' | 'edit' | 'settings' | 'account' | 'export' | 'set-theme' | 'set-notify' | 'set-backup' | 'about'
 
 export function Header({ go }: { go: (t: Tab) => void }) {
   const vehicles = useStore((s) => s.vehicles)
@@ -94,6 +94,7 @@ export function Header({ go }: { go: (t: Tab) => void }) {
     { label: 'Доклади', Icon: IconDocument, action: () => setModal('export') },
     { label: 'Настройки', Icon: IconGear, action: () => setModal('settings') },
     { label: 'Акаунт', Icon: IconUser, action: () => setModal('account') },
+    { label: 'Относно', Icon: IconInfo, action: () => setModal('about') },
   ]
 
   const exportBackup = () => {
@@ -482,6 +483,22 @@ export function Header({ go }: { go: (t: Tab) => void }) {
         ) : (
           <div className="empty">Няма активен акаунт.</div>
         )}
+      </Modal>
+
+      {/* ── Относно ── */}
+      <Modal open={modal === 'about'} title="Относно" onClose={() => setModal('none')}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+          <img src="icon-192.png" alt="" width={64} height={64} style={{ borderRadius: 16 }} />
+          <b style={{ fontSize: 17 }}>MyCar</b>
+          <span style={{ fontSize: 13, color: 'var(--muted)' }}>Разходи, гориво и поддръжка на автомобила</span>
+        </div>
+        <div className={styles.accList}>
+          <div className={styles.accRow}><span>Версия</span><b>{__APP_VERSION__}</b></div>
+          <div className={styles.accRow}>
+            <span>Билд</span>
+            <b className="mono">{__BUILD_COMMIT__} · {new Date(__BUILD_DATE__ + 'T00:00:00').toLocaleDateString('bg-BG')}</b>
+          </div>
+        </div>
       </Modal>
 
       {/* ── Нов автомобил ── */}
