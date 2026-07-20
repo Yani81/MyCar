@@ -35,6 +35,7 @@ export default function App() {
   const reminders = useStore((s) => s.reminders)
   const notifyDaysAhead = useStore((s) => s.notifyDaysAhead)
   const autoCheckFines = useStore((s) => s.autoCheckFines)
+  const driverProfile = useStore((s) => s.driverProfile)
   const { user, loading } = useAuth()
   const prevUserId = useRef<string | null>(null)
 
@@ -120,6 +121,38 @@ export default function App() {
       Notification.requestPermission().then((p) => { if (p === 'granted') show() })
     }
   }, [user?.id, notifyDaysAhead])
+
+  // Предупреждение за изтичане на шофьорска книжка — ФИКСИРАНО 1 месец
+  // предварително, независимо от настройката „Известия" по-горе.
+  useEffect(() => {
+    const validUntil = driverProfile?.licenseValidUntil
+    if (!user || !validUntil) return
+    if (sessionStorage.getItem('notif-license-checked')) return
+    sessionStorage.setItem('notif-license-checked', '1')
+
+    const todayMs = new Date().setHours(0, 0, 0, 0)
+    const due = new Date(validUntil + 'T00:00:00').getTime()
+    const days = Math.round((due - todayMs) / 86400000)
+    if (days < 0 || days > 30 || !('Notification' in window)) return
+
+    const body = days === 0 ? 'Днес!' : `След ${days} ${days === 1 ? 'ден' : 'дни'}`
+    const opts = { body, icon: '/MyCar/icon-192.png' }
+    const show = () => {
+      if (navigator.serviceWorker?.controller) {
+        navigator.serviceWorker.ready
+          .then((sw) => sw.showNotification('MyCar: Шофьорската книжка изтича', opts))
+          .catch(() => new Notification('MyCar: Шофьорската книжка изтича', opts))
+      } else {
+        new Notification('MyCar: Шофьорската книжка изтича', opts)
+      }
+    }
+
+    if (Notification.permission === 'granted') {
+      show()
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then((p) => { if (p === 'granted') show() })
+    }
+  }, [user?.id, driverProfile?.licenseValidUntil])
 
   if (loading) {
     return (
