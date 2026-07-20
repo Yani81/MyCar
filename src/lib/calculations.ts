@@ -469,3 +469,25 @@ export function driverLicenseStatus(licenseValidUntil: string | undefined, from:
   if (!span) return 'missing'
   return span.isPast ? 'expired' : 'valid'
 }
+
+/** Дни до дата (положително = бъдеще). Сравнява по календарен ден, не по
+ *  абсолютен момент. Приема и българския формат на датата (toISODate). */
+export function daysUntil(rawDate: string, from: Date = new Date()): number | null {
+  const iso = toISODate(rawDate)
+  if (!iso) return null
+  const target = new Date(iso + 'T00:00:00')
+  const today = new Date(from.getFullYear(), from.getMonth(), from.getDate())
+  return Math.round((target.getTime() - today.getTime()) / 86400000)
+}
+
+export type DocumentUrgency = 'ok' | 'soon' | 'invalid' | 'missing'
+
+/** Спешност на документ с валидност (ГО/ГТП/винетка/книжка) за оцветяване на
+ *  точките в „Статус на документи": „soon" при валиден, но изтичащ до 30 дни. */
+export function documentUrgency(valid: boolean | null | undefined, validUntil: string | undefined, from: Date = new Date()): DocumentUrgency {
+  if (valid == null) return 'missing'
+  if (!valid) return 'invalid'
+  const days = validUntil ? daysUntil(validUntil, from) : null
+  if (days == null) return 'ok'
+  return days >= 0 && days <= 30 ? 'soon' : 'ok'
+}

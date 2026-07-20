@@ -130,13 +130,27 @@
   font-size: 18px;
   font-weight: 700;
 }
+.remindersCard {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  gap: 8px;
+}
+.remindersTitle {
+  font-weight: 600;
+  font-size: 14px;
+}
 .reminder {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  margin-top: 10px;
-  padding: 14px 16px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface);
@@ -302,6 +316,7 @@
   margin-top: 4px;
 }
 .dotGreen { background: var(--green); }
+.dotAccent { background: var(--accent); }
 .dotRed { background: var(--red); }
 .dotGray { background: var(--border); }
 .checksCellInfo {

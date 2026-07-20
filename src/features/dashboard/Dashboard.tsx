@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import styles from './Dashboard.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { useUI, type FormOpen } from '../../store/useUI'
-import { computeStats, reminderInfo, serviceMileage, dateSpanUntil, formatSpan, driverLicenseStatus, type AllData } from '../../lib/calculations'
+import { computeStats, reminderInfo, serviceMileage, dateSpanUntil, formatSpan, driverLicenseStatus, documentUrgency, type AllData, type DocumentUrgency } from '../../lib/calculations'
 import { money, km, num, dateShort } from '../../lib/format'
 import type { Tab } from '../../components/Layout/BottomNav'
 import { FUEL_LABELS, FUEL_UNITS, TIRE_LABELS, consUnitLabel } from '../../types'
@@ -36,10 +36,12 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
     const prevRefuelOdo = sortedFuelRefuels[1]?.odometer ?? null
     const lastKm = lastRefuel && prevRefuelOdo !== null ? lastRefuel.odometer - prevRefuelOdo : null
 
-    const nextRem = reminders
+    // Всички напомняния „просрочени" или „наближават" (не само първото).
+    const dueSoonRems = reminders
       .filter((r) => r.vehicleId === v.id && !r.done)
       .map((r) => ({ r, info: reminderInfo(r, stats.currentOdometer) }))
-      .sort((a, b) => ({ overdue: 0, soon: 1, ok: 2 }[a.info.status] - { overdue: 0, soon: 1, ok: 2 }[b.info.status]))[0]
+      .filter((x) => x.info.status !== 'ok')
+      .sort((a, b) => ({ overdue: 0, soon: 1, ok: 2 }[a.info.status] - { overdue: 0, soon: 1, ok: 2 }[b.info.status]))
 
     const recent = [
       ...data.refuels.map((r) => ({ id: r.id, Icon: IconFuel, cls: 'fuel', date: r.date, odo: r.odometer, label: `${num(r.liters, 2)} ${FUEL_UNITS[r.fuelType]} · ${num(r.pricePerLiter, 2)} €/${FUEL_UNITS[r.fuelType]}`, sub: `${FUEL_LABELS[r.fuelType]}${r.station ? ` · ${r.station}` : ''}`, amount: r.total, pos: false, open: { type: 'refuel', entry: r } as FormOpen })),
@@ -56,11 +58,11 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
       .filter((t) => t.endOdometer == null)
       .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
 
-    return { stats, nextRem, recent, lastRefuel, lastKm, mileage, activeTrip }
+    return { stats, dueSoonRems, recent, lastRefuel, lastKm, mileage, activeTrip }
   }, [v, refuels, expenses, incomes, trips, readings, reminders])
 
   if (!v || !d) return null
-  const { stats, nextRem, recent, mileage, activeTrip } = d
+  const { stats, dueSoonRems, recent, mileage, activeTrip } = d
   const hasMileage = Object.keys(mileage.tireKm).length > 0 || mileage.sinceOil !== null || mileage.sinceBelts !== null
 
   const checks = vehicleChecks[v.id] ?? {}
@@ -90,7 +92,7 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
       : `Изтекла на ${dateShort(until)}${remainingSuffix(until)}`
   })()
 
-  const checkItems: { key: 'go' | 'gtp' | 'vignette' | 'delict' | 'kat' | 'license'; label: string; ok: boolean | null; value: string }[] = [
+  const checkItems: { key: 'go' | 'gtp' | 'vignette' | 'delict' | 'kat' | 'license'; label: string; urgency: DocumentUrgency; value: string }[] = [
     ...(['go', 'gtp', 'vignette'] as const).map((key) => {
       const r = checks[key]
       const label = key === 'go' ? 'Гражданска отговорност' : key === 'gtp' ? 'Технически преглед' : 'Винетка'
@@ -99,7 +101,7 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
         : r.validUntil
           ? `До ${dateShort(r.validUntil)}${remainingSuffix(r.validUntil)}`
           : r.valid ? 'ОК' : 'Невалидно'
-      return { key, label, ok: r ? r.valid : null, value }
+      return { key, label, urgency: documentUrgency(r ? r.valid : null, r?.validUntil), value }
     }),
     ...(['delict', 'kat'] as const).map((key) => {
       const r = checks[key]
@@ -109,9 +111,15 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
         : r.valid
           ? `Няма глоби към ${dateShort(r.checkedAt)}${elapsedSuffix(r.checkedAt)}`
           : `${key === 'delict' ? 'Има глоби' : 'Има задължения'}${elapsedSuffix(r.checkedAt)}`
-      return { key, label, ok: r ? r.valid : null, value }
+      // Глоби нямат срок на изтичане — само зелено/червено/сиво, без „soon".
+      const urgency: DocumentUrgency = !r ? 'missing' : r.valid ? 'ok' : 'invalid'
+      return { key, label, urgency, value }
     }),
-    { key: 'license', label: 'Шофьорска книжка', ok: licenseStatus === 'missing' ? null : licenseStatus === 'valid', value: licenseValue },
+    {
+      key: 'license', label: 'Шофьорска книжка',
+      urgency: documentUrgency(licenseStatus === 'missing' ? null : licenseStatus === 'valid', driverProfile?.licenseValidUntil),
+      value: licenseValue,
+    },
   ]
 
   return (
@@ -155,14 +163,23 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
         <span className="mono">{money(stats.totalCost)}</span>
       </div>
 
-      {nextRem && (
-        <button className={`${styles.reminder} ${styles[nextRem.info.status]}`} onClick={() => go('reminders')}>
-          <IconBell width={20} height={20} />
-          <div className={styles.remText}>
-            <span className={styles.remTitle}>{nextRem.r.title}</span>
-            <span className={styles.remSub}>{nextRem.info.label}</span>
-          </div>
-        </button>
+      {dueSoonRems.length > 0 && (
+        <div className={styles.remindersCard}>
+          <span className={styles.remindersTitle}>Наближаващи напомняния</span>
+          {dueSoonRems.map(({ r, info }) => (
+            <button
+              key={r.id}
+              className={`${styles.reminder} ${styles[info.status]}`}
+              onClick={() => openForm({ type: 'reminder', entry: r })}
+            >
+              <IconBell width={20} height={20} />
+              <div className={styles.remText}>
+                <span className={styles.remTitle}>{r.title}</span>
+                <span className={styles.remSub}>{info.label}</span>
+              </div>
+            </button>
+          ))}
+        </div>
       )}
 
       <button className={styles.checksCard} onClick={() => go('checks')}>
@@ -171,9 +188,14 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
           <span className={styles.checksArrow}>›</span>
         </div>
         <div className={styles.checksList}>
-          {checkItems.map(({ key, label, ok, value }) => (
+          {checkItems.map(({ key, label, urgency, value }) => (
             <div key={key} className={styles.checksRow}>
-              <span className={`${styles.dot} ${ok === true ? styles.dotGreen : ok === false ? styles.dotRed : styles.dotGray}`} />
+              <span className={`${styles.dot} ${
+                urgency === 'ok' ? styles.dotGreen
+                : urgency === 'soon' ? styles.dotAccent
+                : urgency === 'invalid' ? styles.dotRed
+                : styles.dotGray
+              }`} />
               <div className={styles.checksCellInfo}>
                 <span className={styles.checksLabel}>{label}</span>
                 <span className={styles.checksVal}>{value}</span>
