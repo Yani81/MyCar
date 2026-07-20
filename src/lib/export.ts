@@ -98,23 +98,17 @@ export function exportVehicleCSV(data: ExportData) {
   URL.revokeObjectURL(url)
 }
 
-// ─── PDF (HTML в нов таб) ────────────────────────────────────────────────────
+// ─── PDF (pdfmake — директно сваляне на файл, кирилица чрез Roboto) ─────────
 
-function htmlRows(rows: unknown[][]): string {
-  return rows.map((r) => `<tr>${r.map((v) => `<td>${v == null ? '' : String(v)}</td>`).join('')}</tr>`).join('')
-}
+const INDIGO = '#5b5bd6'
+const HEAD_BG = '#f2f2fc'
 
-function htmlTable(title: string, heads: string[], rows: unknown[][]): string {
-  if (rows.length === 0) return ''
-  return `
-    <section>
-      <h2>${title}</h2>
-      <table>
-        <thead><tr>${heads.map((h) => `<th>${h}</th>`).join('')}</tr></thead>
-        <tbody>${htmlRows(rows)}</tbody>
-      </table>
-    </section>`
-}
+type Cell = string | { text: string; alignment?: 'right'; bold?: boolean; color?: string; fontSize?: number }
+
+/** Стойност в евро: дясно подравнена, със знака след числото. */
+const euro = (n: number): Cell => ({ text: `${fmt2(n)} €`, alignment: 'right' })
+/** Число (км, литри…): дясно подравнено, без валута. */
+const rnum = (n: number, digits: 0 | 2 = 0): Cell => ({ text: digits === 2 ? fmt2(n) : fmt0(n), alignment: 'right' })
 
 /** Допълнителни данни на сервизен запис (масло, филтри, гуми, застраховка) за колоната „Детайли". */
 function expenseDetails(e: Expense): string {
@@ -134,9 +128,32 @@ function expenseDetails(e: Expense): string {
   return parts.join(' · ')
 }
 
-export function exportVehiclePDF(data: ExportData) {
+/** Секция с таблица за pdfmake; пропуска се при празни редове. */
+function pdfSection(title: string, heads: string[], rows: Cell[][]): object[] {
+  if (rows.length === 0) return []
+  const headRow: Cell[] = heads.map((h) => ({ text: h, bold: true }))
+  return [
+    { text: title, color: INDIGO, bold: true, fontSize: 10, margin: [0, 12, 0, 4] },
+    {
+      table: {
+        headerRows: 1,
+        widths: heads.map(() => 'auto'),
+        body: [headRow, ...rows],
+      },
+      fontSize: 8,
+      layout: {
+        fillColor: (rowIndex: number) => (rowIndex === 0 ? HEAD_BG : rowIndex % 2 === 0 ? '#fafafa' : null),
+        hLineColor: () => '#e8e8e8',
+        vLineColor: () => '#e8e8e8',
+        hLineWidth: () => 0.5,
+        vLineWidth: () => 0.5,
+      },
+    },
+  ]
+}
+
+export async function exportVehiclePDF(data: ExportData) {
   const { vehicle, refuels, expenses, incomes, trips, readings } = data
-  const date = new Date().toLocaleDateString('bg-BG')
 
   // Разход и изминати км „пълен до пълен" по вид гориво
   const consMap = new Map<string, { consumption: number; distance: number }>()
@@ -147,8 +164,8 @@ export function exportVehiclePDF(data: ExportData) {
   }
 
   const stats = computeStats(vehicle, { refuels, expenses, incomes, trips, readings }, !!data.period)
-  const mainFuel = vehicle.fuels[0]
-  const consUnit = consUnitLabel(mainFuel)
+  const consUnit = consUnitLabel(vehicle.fuels[0])
+  const periodLabel = data.period ? `${isoToBg(data.period.from)} – ${isoToBg(data.period.to)}` : 'От началото'
 
   const summaryItems: [string, string][] = [
     ['Изминато разстояние', `${fmt0(stats.totalDistance)} км`],
@@ -160,80 +177,64 @@ export function exportVehiclePDF(data: ExportData) {
     ['Среден разход', stats.avgConsumption !== null ? `${fmt2(stats.avgConsumption)} ${consUnit}` : '—'],
     ['Разход на километър', stats.costPerKm !== null ? `${fmt2(stats.costPerKm)} €/км` : '—'],
   ]
-  const summary = `
-    <div class="summary">
-      ${summaryItems.map(([l, v]) => `<div class="sumItem"><span>${l}</span><b>${v}</b></div>`).join('')}
-    </div>`
+  const summaryCell = ([label, value]: [string, string]) => ({
+    stack: [
+      { text: label.toUpperCase(), fontSize: 6.5, color: '#666', margin: [0, 0, 0, 2] },
+      { text: value, bold: true, fontSize: 10 },
+    ],
+    margin: [4, 4, 4, 4],
+  })
 
-  const body = `
-    ${htmlTable('Гориво', ['Дата', 'Км', 'Гориво', 'Литри', 'Цена/л', 'Сума (€)', `Разход (${consUnit})`, 'Изминати км', 'Станция', 'Пълен'],
+  const content: object[] = [
+    { text: `${vehicle.name}${vehicle.plate ? ' · ' + vehicle.plate : ''}`, color: INDIGO, bold: true, fontSize: 14 },
+    { text: `Период: ${periodLabel} · Генерирано на ${new Date().toLocaleDateString('bg-BG')}`, color: '#666', fontSize: 8, margin: [0, 2, 0, 10] },
+    {
+      table: {
+        widths: ['*', '*', '*', '*'],
+        body: [summaryItems.slice(0, 4).map(summaryCell), summaryItems.slice(4).map(summaryCell)],
+      },
+      layout: {
+        fillColor: () => '#f8f8fe',
+        hLineColor: () => '#cdcdf0',
+        vLineColor: () => '#cdcdf0',
+        hLineWidth: () => 0.5,
+        vLineWidth: () => 0.5,
+      },
+    },
+    ...pdfSection('ГОРИВО', ['Дата', 'Км', 'Гориво', 'Литри', 'Цена/л', 'Сума', `Разход (${consUnit})`, 'Изминати км', 'Станция', 'Пълен'],
       refuels.map((r) => {
         const c = consMap.get(r.id)
-        return [isoToBg(r.date.slice(0, 10)), fmt0(r.odometer), FUEL_LABELS[r.fuelType], fmt2(r.liters), fmt2(r.pricePerLiter), fmt2(r.total), c ? fmt2(c.consumption) : '', c ? fmt0(c.distance) : '', r.station ?? '', r.fullTank ? 'Да' : 'Не']
-      }))}
-    ${htmlTable('Разходи', ['Дата', 'Км', 'Вид', 'Категория', 'Сума (€)', 'Място', 'Детайли', 'Бележка'],
-      expenses.map((e) => [isoToBg(e.date.slice(0, 10)), e.odometer ? fmt0(e.odometer) : '', e.kind === 'service' ? 'Ремонт' : 'Разход', e.category, fmt2(e.cost), e.place ?? '', expenseDetails(e), e.notes ?? '']))}
-    ${htmlTable('Приходи', ['Дата', 'Км', 'Категория', 'Сума (€)', 'Бележка'],
-      incomes.map((i) => [isoToBg(i.date.slice(0, 10)), i.odometer ? fmt0(i.odometer) : '', i.category, fmt2(i.amount), i.notes ?? '']))}
-    ${htmlTable('Маршрути', ['Дата', 'От', 'До', 'Начало км', 'Край км', 'Разстояние (км)', 'Сума (€)', 'Цел'],
-      trips.map((t) => [isoToBg(t.date.slice(0, 10)), t.origin, t.destination ? (t.roundTrip ? `${t.destination} и обратно` : t.destination) : 'в движение', fmt0(t.startOdometer), t.endOdometer != null ? fmt0(t.endOdometer) : '', t.endOdometer != null ? fmt0(Math.max(0, t.endOdometer - t.startOdometer)) : '', fmt2(t.total), t.reason ?? '']))}
-    ${htmlTable('Километраж', ['Дата', 'Км'],
-      readings.map((r) => [isoToBg(r.date.slice(0, 10)), fmt0(r.odometer)]))}
-  `
+        return [isoToBg(r.date.slice(0, 10)), rnum(r.odometer), FUEL_LABELS[r.fuelType], rnum(r.liters, 2), euro(r.pricePerLiter), euro(r.total), c ? rnum(c.consumption, 2) : '', c ? rnum(c.distance) : '', r.station ?? '', r.fullTank ? 'Да' : 'Не']
+      })),
+    ...pdfSection('РАЗХОДИ', ['Дата', 'Км', 'Вид', 'Категория', 'Сума', 'Място', 'Детайли', 'Бележка'],
+      expenses.map((e) => [isoToBg(e.date.slice(0, 10)), e.odometer ? rnum(e.odometer) : '', e.kind === 'service' ? 'Ремонт' : 'Разход', e.category, euro(e.cost), e.place ?? '', expenseDetails(e), e.notes ?? ''])),
+    ...pdfSection('ПРИХОДИ', ['Дата', 'Км', 'Категория', 'Сума', 'Бележка'],
+      incomes.map((i) => [isoToBg(i.date.slice(0, 10)), i.odometer ? rnum(i.odometer) : '', i.category, euro(i.amount), i.notes ?? ''])),
+    ...pdfSection('МАРШРУТИ', ['Дата', 'От', 'До', 'Начало км', 'Край км', 'Разстояние (км)', 'Сума', 'Цел'],
+      trips.map((t) => [isoToBg(t.date.slice(0, 10)), t.origin, t.destination ? (t.roundTrip ? `${t.destination} и обратно` : t.destination) : 'в движение', rnum(t.startOdometer), t.endOdometer != null ? rnum(t.endOdometer) : '', t.endOdometer != null ? rnum(Math.max(0, t.endOdometer - t.startOdometer)) : '', euro(t.total), t.reason ?? ''])),
+    ...pdfSection('КИЛОМЕТРАЖ', ['Дата', 'Км'],
+      readings.map((r) => [isoToBg(r.date.slice(0, 10)), rnum(r.odometer)])),
+  ]
 
-  const periodLabel = data.period ? `${isoToBg(data.period.from)} – ${isoToBg(data.period.to)}` : 'От началото'
+  // pdfmake се зарежда мързеливо (~1 MB с шрифтовете) — само при реален експорт
+  const [pdfMakeModule, fontsModule] = await Promise.all([
+    import('pdfmake/build/pdfmake'),
+    import('pdfmake/build/vfs_fonts'),
+  ])
+  const pdfMake = (pdfMakeModule as { default?: unknown }).default ?? pdfMakeModule
+  const fonts = (fontsModule as { default?: unknown }).default ?? fontsModule
+  // 0.3.x: addVirtualFileSystem; 0.2.x: .vfs
+  const pm = pdfMake as { addVirtualFileSystem?: (f: unknown) => void; vfs?: unknown; createPdf: (d: object) => { download: (name: string) => void } }
+  if (typeof pm.addVirtualFileSystem === 'function') pm.addVirtualFileSystem(fonts)
+  else pm.vfs = fonts
 
-  const html = `<!DOCTYPE html>
-<html lang="bg">
-<head>
-<meta charset="UTF-8">
-<title>MyCar – ${vehicle.name}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,Arial,sans-serif;font-size:11px;color:#111;padding:0}
-  .toolbar{background:#f2f2fc;border-bottom:2px solid #5b5bd6;padding:12px 20px;display:flex;align-items:center;gap:16px;position:sticky;top:0}
-  .toolbar h1{font-size:16px;color:#5b5bd6;font-weight:700;flex:1}
-  .toolbar p{font-size:11px;color:#666;margin-top:2px}
-  .print-btn{background:#5b5bd6;color:#fff;border:none;padding:9px 20px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer}
-  .print-btn:hover{background:#4a4ac0}
-  .content{padding:20px}
-  .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:24px}
-  .sumItem{border:1px solid #cdcdf0;border-radius:8px;padding:8px 10px;background:#f8f8fe}
-  .sumItem span{display:block;font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
-  .sumItem b{font-size:13px;color:#111}
-  section{margin-bottom:28px;break-inside:avoid}
-  h2{font-size:13px;font-weight:700;margin-bottom:8px;color:#5b5bd6;border-left:3px solid #5b5bd6;padding-left:8px;text-transform:uppercase;letter-spacing:.04em}
-  table{width:100%;border-collapse:collapse}
-  th{background:#f2f2fc;font-weight:600;text-align:left;padding:5px 8px;border:1px solid #cdcdf0;font-size:10px;white-space:nowrap}
-  td{padding:4px 8px;border:1px solid #e8e8e8;vertical-align:top}
-  tr:nth-child(even) td{background:#fafafa}
-  @media print{
-    .toolbar{position:static}
-    .print-btn{display:none}
-  }
-  @page{
-    @bottom-left{content:"MyCar";font-family:-apple-system,Arial,sans-serif;font-size:9px;color:#888}
-  }
-</style>
-</head>
-<body>
-<div class="toolbar">
-  <div style="flex:1">
-    <h1>${vehicle.name}${vehicle.plate ? ' · ' + vehicle.plate : ''}</h1>
-    <p>Период: ${periodLabel} · Генерирано на ${date}</p>
-  </div>
-  <button class="print-btn" onclick="window.print()">Запази като PDF</button>
-</div>
-<div class="content">${summary}${body}</div>
-</body>
-</html>`
-
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.target = '_blank'
-  a.rel = 'noopener'
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  const safeName = vehicle.name.replace(/[/\\?%*:|"<>]/g, '-')
+  const date = new Date().toISOString().slice(0, 10)
+  pm.createPdf({
+    pageSize: 'A4',
+    pageMargins: [28, 28, 28, 32],
+    defaultStyle: { font: 'Roboto', fontSize: 8 },
+    footer: { text: 'MyCar', fontSize: 7, color: '#888', margin: [28, 8, 0, 0] },
+    content,
+  }).download(`mycar-${safeName}-${date}.pdf`)
 }
