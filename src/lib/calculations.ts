@@ -10,7 +10,7 @@ import type {
   TireType,
 } from '../types'
 import { FUEL_LABELS } from '../types'
-import { monthKey, todayDateISO } from './format'
+import { monthKey, todayDateISO, toISODate } from './format'
 
 export const sortRefuels = (r: Refuel[]): Refuel[] =>
   [...r].sort((a, b) => a.odometer - b.odometer || a.date.localeCompare(b.date))
@@ -414,4 +414,58 @@ export const reminderInfo = (r: Reminder, odo: number): ReminderInfo => {
   if ((daysLeft !== null && daysLeft < 0) || (kmLeft !== null && kmLeft < 0)) status = 'overdue'
   else if ((daysLeft !== null && daysLeft <= 14) || (kmLeft !== null && kmLeft <= 500)) status = 'soon'
   return { status, daysLeft, kmLeft, label: parts.join(' · ') || 'без срок' }
+}
+
+export interface DateSpan {
+  years: number
+  months: number
+  days: number
+  isPast: boolean
+}
+
+/** Разлика до дата, разбита на години/месеци/дни (за „остават 3 години, 10
+ *  месеца и 25 дни" в „Статус на документи"). Приема и българския формат
+ *  на датата (през toISODate). Сравнява по календарен ден (полунощ), не по
+ *  абсолютен момент — „днес" не бива да излиза случайно като минало. */
+export function dateSpanUntil(rawDate: string, from: Date = new Date()): DateSpan | null {
+  const iso = toISODate(rawDate)
+  if (!iso) return null
+  const target = new Date(iso + 'T00:00:00')
+  const today = new Date(from.getFullYear(), from.getMonth(), from.getDate())
+  const isPast = target < today
+  const earlier = isPast ? target : today
+  const later = isPast ? today : target
+
+  let years = later.getFullYear() - earlier.getFullYear()
+  let months = later.getMonth() - earlier.getMonth()
+  let days = later.getDate() - earlier.getDate()
+  if (days < 0) {
+    months -= 1
+    days += new Date(later.getFullYear(), later.getMonth(), 0).getDate()
+  }
+  if (months < 0) {
+    years -= 1
+    months += 12
+  }
+  return { years, months, days, isPast }
+}
+
+/** „3 години, 10 месеца и 25 дни" — пропуска нулевите единици; при цялостна нула → „0 дни". */
+export function formatSpan(span: DateSpan): string {
+  const parts: string[] = []
+  if (span.years > 0) parts.push(span.years === 1 ? '1 година' : `${span.years} години`)
+  if (span.months > 0) parts.push(span.months === 1 ? '1 месец' : `${span.months} месеца`)
+  if (span.days > 0 || parts.length === 0) parts.push(span.days === 1 ? '1 ден' : `${span.days} дни`)
+  if (parts.length === 1) return parts[0]
+  return parts.slice(0, -1).join(', ') + ' и ' + parts[parts.length - 1]
+}
+
+export type DriverLicenseStatus = 'valid' | 'expired' | 'missing'
+
+/** Чисто локално сравнение на дата — няма държавна услуга за проверка на книжка. */
+export function driverLicenseStatus(licenseValidUntil: string | undefined, from: Date = new Date()): DriverLicenseStatus {
+  if (!licenseValidUntil) return 'missing'
+  const span = dateSpanUntil(licenseValidUntil, from)
+  if (!span) return 'missing'
+  return span.isPast ? 'expired' : 'valid'
 }

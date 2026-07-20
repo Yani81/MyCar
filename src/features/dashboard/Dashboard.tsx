@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import styles from './Dashboard.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import { useUI, type FormOpen } from '../../store/useUI'
-import { computeStats, reminderInfo, serviceMileage, type AllData } from '../../lib/calculations'
+import { computeStats, reminderInfo, serviceMileage, dateSpanUntil, formatSpan, driverLicenseStatus, type AllData } from '../../lib/calculations'
 import { money, km, num, dateShort } from '../../lib/format'
 import type { Tab } from '../../components/Layout/BottomNav'
 import { FUEL_LABELS, FUEL_UNITS, TIRE_LABELS, consUnitLabel } from '../../types'
@@ -17,6 +17,7 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
   const readings = useStore((s) => s.readings)
   const reminders = useStore((s) => s.reminders)
   const vehicleChecks = useStore((s) => s.vehicleChecks)
+  const driverProfile = useStore((s) => s.driverProfile)
   const openForm = useUI((s) => s.openForm)
 
   const d = useMemo(() => {
@@ -63,12 +64,54 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
   const hasMileage = Object.keys(mileage.tireKm).length > 0 || mileage.sinceOil !== null || mileage.sinceBelts !== null
 
   const checks = vehicleChecks[v.id] ?? {}
-  const checkItems = [
-    { key: 'go' as const, label: 'Гражданска отговорност' },
-    { key: 'gtp' as const, label: 'Технически преглед' },
-    { key: 'vignette' as const, label: 'Винетка' },
-    { key: 'delict' as const, label: 'Глоби BGToll' },
-    { key: 'kat' as const, label: 'Глоби КАТ (МВР)' },
+
+  /** „До {дата} · остават 3 месеца и 2 дни" / „изтекла преди …" / „изтича днес". */
+  const remainingSuffix = (until: string): string => {
+    const span = dateSpanUntil(until)
+    if (!span) return ''
+    if (span.isPast) return ` · изтекла преди ${formatSpan(span)}`
+    if (span.years === 0 && span.months === 0 && span.days === 0) return ' · изтича днес'
+    return ` · остават ${formatSpan(span)}`
+  }
+  /** „· преди 2 месеца и 5 дни" / „· днес" — откога е правена проверката. */
+  const elapsedSuffix = (checkedAt: string): string => {
+    const span = dateSpanUntil(checkedAt)
+    if (!span) return ''
+    if (!span.isPast && span.years === 0 && span.months === 0 && span.days === 0) return ' · днес'
+    return ` · преди ${formatSpan(span)}`
+  }
+
+  const licenseStatus = driverLicenseStatus(driverProfile?.licenseValidUntil)
+  const licenseValue = (() => {
+    if (licenseStatus === 'missing') return 'Няма въведени данни'
+    const until = driverProfile!.licenseValidUntil!
+    return licenseStatus === 'valid'
+      ? `До ${dateShort(until)}${remainingSuffix(until)}`
+      : `Изтекла на ${dateShort(until)}${remainingSuffix(until)}`
+  })()
+
+  const checkItems: { key: 'go' | 'gtp' | 'vignette' | 'delict' | 'kat' | 'license'; label: string; ok: boolean | null; value: string }[] = [
+    ...(['go', 'gtp', 'vignette'] as const).map((key) => {
+      const r = checks[key]
+      const label = key === 'go' ? 'Гражданска отговорност' : key === 'gtp' ? 'Технически преглед' : 'Винетка'
+      const value = !r
+        ? '—'
+        : r.validUntil
+          ? `До ${dateShort(r.validUntil)}${remainingSuffix(r.validUntil)}`
+          : r.valid ? 'ОК' : 'Невалидно'
+      return { key, label, ok: r ? r.valid : null, value }
+    }),
+    ...(['delict', 'kat'] as const).map((key) => {
+      const r = checks[key]
+      const label = key === 'delict' ? 'Глоби BGToll' : 'Глоби КАТ (МВР)'
+      const value = !r
+        ? '—'
+        : r.valid
+          ? `Няма глоби към ${dateShort(r.checkedAt)}${elapsedSuffix(r.checkedAt)}`
+          : `${key === 'delict' ? 'Има глоби' : 'Има задължения'}${elapsedSuffix(r.checkedAt)}`
+      return { key, label, ok: r ? r.valid : null, value }
+    }),
+    { key: 'license', label: 'Шофьорска книжка', ok: licenseStatus === 'missing' ? null : licenseStatus === 'valid', value: licenseValue },
   ]
 
   return (
@@ -127,28 +170,16 @@ export function Dashboard({ go }: { go: (t: Tab) => void }) {
           <span className={styles.checksTitle}>Статус на документи</span>
           <span className={styles.checksArrow}>›</span>
         </div>
-        <div className={styles.checksGrid}>
-          {checkItems.map(({ key, label }) => {
-            const r = checks[key]
-            const ok = r ? r.valid : null
-            return (
-              <div key={key} className={styles.checksCell}>
-                <span className={`${styles.dot} ${ok === true ? styles.dotGreen : ok === false ? styles.dotRed : styles.dotGray}`} />
-                <div className={styles.checksCellInfo}>
-                  <span className={styles.checksLabel}>{label}</span>
-                  <span className={styles.checksVal}>
-                    {r
-                      ? key === 'delict' || key === 'kat'
-                        ? (r.valid
-                            ? `Няма до ${dateShort(r.checkedAt)}`
-                            : key === 'delict' ? 'Има глоби' : 'Има задължения')
-                        : (r.validUntil ? `До ${r.validUntil}` : (r.valid ? 'ОК' : 'Невалидно'))
-                      : '—'}
-                  </span>
-                </div>
+        <div className={styles.checksList}>
+          {checkItems.map(({ key, label, ok, value }) => (
+            <div key={key} className={styles.checksRow}>
+              <span className={`${styles.dot} ${ok === true ? styles.dotGreen : ok === false ? styles.dotRed : styles.dotGray}`} />
+              <div className={styles.checksCellInfo}>
+                <span className={styles.checksLabel}>{label}</span>
+                <span className={styles.checksVal}>{value}</span>
               </div>
-            )
-          })}
+            </div>
+          ))}
         </div>
       </button>
 

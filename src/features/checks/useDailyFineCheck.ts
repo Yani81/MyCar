@@ -33,8 +33,8 @@ export function useDailyFineCheck(enabled: boolean) {
     const run = async () => {
       if (running.current) return
       const s = useStore.getState()
-      const creds = s.katCredentials
-      if (!s.autoCheckFines || !creds) return
+      const profile = s.driverProfile
+      if (!s.autoCheckFines || !profile?.egn || !profile.license) return
       const v = s.vehicles.find((x) => x.id === s.activeVehicleId) ?? s.vehicles[0]
       if (!v) return
 
@@ -48,12 +48,12 @@ export function useDailyFineCheck(enabled: boolean) {
       try {
         const found: string[] = []
         if (needKat) {
-          const r = await runKatCheck(creds.egn, creds.license)
+          const r = await runKatCheck(profile.egn, profile.license)
           useStore.getState().saveCheck(v.id, 'kat', r)
           if (!r.valid && !isCheckError(r)) found.push(`КАТ: ${r.message}`)
         }
         if (needDelict) {
-          const r = await runDelictCheck(v.plate!, creds.egn)
+          const r = await runDelictCheck(v.plate!, profile.egn)
           useStore.getState().saveCheck(v.id, 'delict', r)
           if (!r.valid && !isCheckError(r)) found.push(`BGToll: ${r.message}`)
         }

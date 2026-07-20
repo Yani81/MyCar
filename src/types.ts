@@ -195,3 +195,13 @@ export interface VehicleChecks {
   delict?: VehicleCheckResult
   kat?: VehicleCheckResult
 }
+
+/** Профил на водача — само за КАТ проверки и валидност на книжка. Живее
+ *  изключително в localStorage (извън sync/бекъп), един за цялото устройство. */
+export interface DriverProfile {
+  fullName: string
+  egn: string
+  license: string
+  /** Валидност на книжката (ISO YYYY-MM-DD), по избор. */
+  licenseValidUntil?: string
+}

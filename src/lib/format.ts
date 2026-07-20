@@ -13,8 +13,21 @@ export const km = (n: number): string => num(n, 0) + ' км'
 
 export const liters = (n: number): string => num(n, 2) + ' л'
 
+/** „YYYY-MM-DD" директно; „DD.MM.YYYY" (по избор с час след датата, напр.
+ *  „02.07.2027г. 23:59:59ч.") → ISO. Държавните edge функции (ГО/ГТП/винетка)
+ *  връщат validUntil в българския формат, не ISO. */
+export const toISODate = (s: string | undefined | null): string | undefined => {
+  if (!s) return undefined
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/)
+  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+  return undefined
+}
+
 export const dateShort = (iso: string): string => {
-  const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
+  const normalized = toISODate(iso) ?? iso
+  const [y, m, d] = normalized.slice(0, 10).split('-').map(Number)
+  if (!y || !m || !d) return iso
   return new Date(y, m - 1, d).toLocaleDateString(BG, { day: '2-digit', month: 'short', year: 'numeric' })
 }
 

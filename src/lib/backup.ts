@@ -10,7 +10,7 @@ import type {
 } from '../types'
 import type { Theme } from '../store/useStore'
 
-/** Пълен бекъп на всички данни (без katCredentials — съдържа ЕГН). */
+/** Пълен бекъп на всички данни (без driverProfile — съдържа ЕГН). */
 export interface BackupData {
   version: 1
   exportedAt: string

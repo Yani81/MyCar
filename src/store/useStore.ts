@@ -11,6 +11,7 @@ import type {
   FuelType,
   VehicleChecks,
   VehicleCheckResult,
+  DriverProfile,
 } from '../types'
 import { uid } from '../lib/id'
 import { deleteReceipt } from '../lib/image'
@@ -67,8 +68,8 @@ interface State {
   vehicleChecks: Record<string, VehicleChecks>
   saveCheck: (vehicleId: string, type: keyof VehicleChecks, result: VehicleCheckResult) => void
 
-  katCredentials: { egn: string; license: string } | null
-  setKatCredentials: (creds: { egn: string; license: string } | null) => void
+  driverProfile: DriverProfile | null
+  setDriverProfile: (profile: DriverProfile | null) => void
 
   /** Автоматична дневна проверка за глоби КАТ/BGToll при отваряне; само на това устройство */
   autoCheckFines: boolean
@@ -209,8 +210,8 @@ export const useStore = create<State>()(
             },
           })),
 
-        katCredentials: null,
-        setKatCredentials: (creds) => set({ katCredentials: creds }),
+        driverProfile: null,
+        setDriverProfile: (profile) => set({ driverProfile: profile }),
 
         autoCheckFines: false,
         setAutoCheckFines: (autoCheckFines) => set({ autoCheckFines }),
