@@ -1,9 +1,11 @@
 import { useMemo, useState, useRef, type ReactNode } from 'react'
 import styles from './RemindersPage.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
-import { advanceReminderPatch, computeStats, reminderInfo, type ReminderStatus, type AllData } from '../../lib/calculations'
+import { restartReminderPatch, computeStats, reminderInfo, type ReminderStatus, type AllData } from '../../lib/calculations'
 import { useUI } from '../../store/useUI'
-import type { Reminder } from '../../types'
+import { Modal } from '../../components/ui/Modal'
+import { dateShort, km } from '../../lib/format'
+import { ENTRY_COLORS, type Reminder } from '../../types'
 
 const STATUS_LABEL: Record<ReminderStatus, string> = {
   overdue: 'Просрочено',
@@ -85,10 +87,23 @@ export function RemindersPage() {
     }
   }, [v, all, currentOdometer])
 
+  const [completing, setCompleting] = useState<Reminder | null>(null)
+
   if (!v) return null
 
-  const complete = (r: Reminder) => {
-    updateReminder(r.id, advanceReminderPatch(r, currentOdometer))
+  const confirmComplete = () => {
+    if (!completing) return
+    updateReminder(completing.id, restartReminderPatch(completing, currentOdometer))
+    setCompleting(null)
+  }
+
+  /** Преглед на следващия срок при повтарящо се (от днес / текущия км). */
+  const nextDueLabel = (r: Reminder): string => {
+    const patch = restartReminderPatch(r, currentOdometer)
+    const parts: string[] = []
+    if (patch.dueDate) parts.push(`до ${dateShort(patch.dueDate)}`)
+    if (patch.dueOdometer) parts.push(`до ${km(patch.dueOdometer)}`)
+    return parts.join(' · ')
   }
 
   return (
@@ -106,7 +121,7 @@ export function RemindersPage() {
                   <span className={styles.title}>{r.title}</span>
                   <span className={styles.sub}>{info.label}</span>
                 </button>
-                <button className={styles.check} onClick={() => complete(r)} aria-label="Готово">✓</button>
+                <button className={styles.check} onClick={() => setCompleting(r)} aria-label="Готово">✓</button>
               </div>
             </SwipeRow>
           ))}
@@ -129,6 +144,41 @@ export function RemindersPage() {
         </>
       )}
 
+      {/* Единен прозорец при отмятане — както в iOS версията */}
+      <Modal
+        open={!!completing}
+        title="Завършване"
+        color={ENTRY_COLORS.reminder}
+        onClose={() => setCompleting(null)}
+      >
+        {completing && (
+          <div className={styles.completeBody}>
+            <div className={styles.completeIcon}>🔔</div>
+            <div className={styles.completeTitle}>{completing.title}</div>
+            <div className={styles.completeSub}>{reminderInfo(completing, currentOdometer).label}</div>
+            <div className={styles.completeHint}>
+              {completing.repeatMonths || completing.repeatKm
+                ? `Повтарящо се — при завършване периодът започва отначало от днес: ${nextDueLabel(completing)}`
+                : 'Еднократно — при завършване отива в „Изпълнени".'}
+            </div>
+            <div className={styles.completeActions}>
+              <button
+                className={styles.completeEdit}
+                onClick={() => {
+                  const r = completing
+                  setCompleting(null)
+                  openForm({ type: 'reminder', entry: r })
+                }}
+              >
+                Редакция
+              </button>
+              <button className={styles.completeConfirm} onClick={confirmComplete}>
+                Маркирай като завършено
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

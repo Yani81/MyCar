@@ -10,7 +10,7 @@ import type {
   TireType,
 } from '../types'
 import { FUEL_LABELS } from '../types'
-import { monthKey } from './format'
+import { monthKey, todayDateISO } from './format'
 
 export const sortRefuels = (r: Refuel[]): Refuel[] =>
   [...r].sort((a, b) => a.odometer - b.odometer || a.date.localeCompare(b.date))
@@ -377,6 +377,22 @@ export const advanceReminderPatch = (r: Reminder, currentOdo: number): Partial<R
     patch.dueDate = d.toISOString().slice(0, 10)
   }
   if (r.repeatKm) patch.dueOdometer = (r.dueOdometer ?? currentOdo) + r.repeatKm
+  return patch
+}
+
+/** При „Маркирай като завършено": еднократно → done; повтарящо се → периодът
+ *  стартира ОТ ДНЕС/текущия км (за разлика от advanceReminderPatch, който брои
+ *  от стария падеж — ползва се в ExpenseForm). */
+export const restartReminderPatch = (r: Reminder, currentOdo: number, today = todayDateISO()): Partial<Reminder> => {
+  if (!r.repeatMonths && !r.repeatKm) return { done: true }
+  const patch: Partial<Reminder> = {}
+  if (r.repeatMonths) {
+    const d = new Date(today + 'T00:00:00')
+    d.setMonth(d.getMonth() + r.repeatMonths)
+    const p = (n: number) => String(n).padStart(2, '0')
+    patch.dueDate = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+  }
+  if (r.repeatKm) patch.dueOdometer = currentOdo + r.repeatKm
   return patch
 }
 
