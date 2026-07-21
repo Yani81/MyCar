@@ -7,7 +7,8 @@ import styles from './ReportsPage.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import {
   computeStats, computeConsumption, monthlySpend, expensesByCategory, incomesByCategory,
-  refuelsByStation, fuelPriceTrend, refuelIntervalStats, recordIntervalStats, type AllData, type NamedBucket,
+  refuelsByStation, fuelPriceTrend, refuelIntervalStats, recordIntervalStats, distanceTrend,
+  type AllData, type NamedBucket, type DistancePoint,
 } from '../../lib/calculations'
 import { consUnitLabel, FUEL_UNITS, ENTRY_COLORS } from '../../types'
 import { money, num, numFixed, monthLabel, dateShort, km } from '../../lib/format'
@@ -92,6 +93,11 @@ export function ReportsPage() {
     [data, from, to]
   )
 
+  const distance = useMemo(
+    () => (v && data ? distanceTrend(v, data, rangeOption !== 'all') : []),
+    [v, data, rangeOption]
+  )
+
   if (!v || !data || !stats) return null
   const hasData = stats.refuelCount > 0 || stats.totalExpenseCost > 0 || stats.totalIncome > 0
 
@@ -161,7 +167,7 @@ export function ReportsPage() {
       {!hasData ? (
         <div className="empty" style={{ marginTop: 8 }}>Няма данни за избрания период.</div>
       ) : tab === 'general' ? (
-        <General stats={stats} monthly={monthly} />
+        <General stats={stats} monthly={monthly} distance={distance} />
       ) : tab === 'fuel' ? (
         <Fuel data={data} stats={stats} monthly={monthly} />
       ) : tab === 'expense' ? (
@@ -175,7 +181,7 @@ export function ReportsPage() {
   )
 }
 
-function General({ stats, monthly }: { stats: Stats; monthly: MonthlyRow[] }) {
+function General({ stats, monthly, distance }: { stats: Stats; monthly: MonthlyRow[]; distance: DistancePoint[] }) {
   const service = monthly.reduce((s, x) => s + x.service, 0)
   const expense = monthly.reduce((s, x) => s + x.expense, 0)
   return (
@@ -187,11 +193,32 @@ function General({ stats, monthly }: { stats: Stats; monthly: MonthlyRow[] }) {
         <Card label="Приход" value={money(stats.totalIncome)} color={ENTRY_COLORS.income} Icon={IconIncome} />
       </div>
       <MonthlyChart monthly={monthly} stacked title="Разходи по месеци" />
+      <DistanceChart points={distance} />
       <Donut title="Сравнение на разходите" buckets={[
         { name: 'Гориво', total: stats.totalFuelCost },
         { name: 'Сервиз', total: service },
         { name: 'Други', total: expense },
       ].filter((b) => b.total > 0)} />
+    </>
+  )
+}
+
+function DistanceChart({ points }: { points: DistancePoint[] }) {
+  if (points.length < 2) return null
+  return (
+    <>
+      <div className="section-title">Пробег</div>
+      <div className={`card ${styles.chartCard}`}>
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={points} margin={{ top: 6, right: 0, left: -18, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke="var(--border)" />
+            <XAxis dataKey="date" tickFormatter={dateShort} tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip cursor={{ stroke: 'var(--border)' }} contentStyle={tooltipStyle} labelFormatter={dateShort} formatter={(val: number) => km(val)} labelStyle={{ color: 'var(--muted)' }} />
+            <Line dataKey="km" name="Пробег" stroke={ENTRY_COLORS.trip} strokeWidth={2} dot={false} type="monotone" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </>
   )
 }

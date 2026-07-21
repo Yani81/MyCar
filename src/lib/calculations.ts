@@ -94,6 +94,43 @@ export const currentOdometer = (v: Vehicle, d: AllData): number => {
   return vals.length ? Math.max(...vals) : v.initialOdometer
 }
 
+export interface DistancePoint {
+  date: string
+  km: number
+}
+
+/** Кумулативен пробег от началото на периода до днес (по дати с известен одометър).
+ *  periodBounded: true → база е първата дата с данни в периода; false („От началото")
+ *  → включва и началния км на автомобила (котва на v.createdAt), огледално на firstOdometer. */
+export const distanceTrend = (v: Vehicle, d: AllData, periodBounded = false): DistancePoint[] => {
+  const raw: { date: string; odo: number }[] = [
+    ...d.refuels.map((r) => ({ date: r.date, odo: r.odometer })),
+    ...d.expenses.filter((e) => e.odometer).map((e) => ({ date: e.date, odo: e.odometer! })),
+    ...d.incomes.filter((i) => i.odometer).map((i) => ({ date: i.date, odo: i.odometer! })),
+    ...d.trips.map((t) => ({ date: t.date, odo: t.startOdometer })),
+    ...d.trips.filter((t) => t.endOdometer != null).map((t) => ({ date: t.date, odo: t.endOdometer! })),
+    ...d.readings.map((r) => ({ date: r.date, odo: r.odometer })),
+  ].filter((p) => p.odo > 0)
+  if (!periodBounded && v.initialOdometer > 0) {
+    raw.push({ date: v.createdAt.slice(0, 10), odo: v.initialOdometer })
+  }
+  if (raw.length === 0) return []
+
+  const byDate = new Map<string, number>()
+  raw.forEach((p) => byDate.set(p.date, Math.max(byDate.get(p.date) ?? 0, p.odo)))
+  const dates = [...byDate.keys()].sort()
+  const base = byDate.get(dates[0])!
+  let runningMax = base
+  const out: DistancePoint[] = dates.map((date) => {
+    runningMax = Math.max(runningMax, byDate.get(date)!)
+    return { date, km: Math.max(0, runningMax - base) }
+  })
+  const today = todayDateISO()
+  const last = out[out.length - 1]
+  if (last && last.date < today) out.push({ date: today, km: last.km })
+  return out
+}
+
 export interface FuelStats {
   fuel: FuelType
   label: string
