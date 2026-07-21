@@ -7,17 +7,17 @@ import styles from './ReportsPage.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import {
   computeStats, computeConsumption, monthlySpend, expensesByCategory, incomesByCategory,
-  refuelsByStation, fuelPriceTrend, refuelIntervalStats, recordIntervalStats, distanceTrend,
-  type AllData, type NamedBucket, type DistancePoint,
+  refuelsByStation, fuelPriceTrend, refuelIntervalStats, recordIntervalStats, distanceTrend, distanceIntervalStats,
+  type AllData, type NamedBucket, type DistancePoint, type DistanceIntervalStats,
 } from '../../lib/calculations'
 import { consUnitLabel, FUEL_UNITS, ENTRY_COLORS } from '../../types'
 import { money, num, numFixed, monthLabel, dateShort, km } from '../../lib/format'
-import { IconIncome, IconRoute, IconWrench, IconFuel, IconChart } from '../../components/Layout/icons'
+import { IconIncome, IconRoute, IconWrench, IconFuel, IconChart, IconOdometer } from '../../components/Layout/icons'
 import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass } from '../../components/ui/Field'
 
 type RangeOption = 'all' | 'year' | 'halfyear' | 'quarter' | 'month' | 'custom'
-type SubTab = 'general' | 'fuel' | 'expense' | 'income' | 'service'
+type SubTab = 'general' | 'fuel' | 'expense' | 'income' | 'service' | 'mileage'
 
 const RANGE_LABELS: Record<RangeOption, string> = {
   all:      'От началото',
@@ -98,6 +98,11 @@ export function ReportsPage() {
     [v, data, rangeOption]
   )
 
+  const mileageStats: DistanceIntervalStats = useMemo(
+    () => (v && data ? distanceIntervalStats(v, data, rangeOption !== 'all') : { count: 0, avgDaysBetween: null, avgKmBetween: null }),
+    [v, data, rangeOption]
+  )
+
   if (!v || !data || !stats) return null
   const hasData = stats.refuelCount > 0 || stats.totalExpenseCost > 0 || stats.totalIncome > 0
 
@@ -151,6 +156,7 @@ export function ReportsPage() {
             ['expense', 'Разходи', ENTRY_COLORS.expense],
             ['income', 'Приход', ENTRY_COLORS.income],
             ['service', 'Сервиз', ENTRY_COLORS.service],
+            ['mileage', 'Пробег', ENTRY_COLORS.odometer],
           ] as [SubTab, string, string][]).map(([id, label, color]) => (
             <button
               key={id}
@@ -167,21 +173,23 @@ export function ReportsPage() {
       {!hasData ? (
         <div className="empty" style={{ marginTop: 8 }}>Няма данни за избрания период.</div>
       ) : tab === 'general' ? (
-        <General stats={stats} monthly={monthly} distance={distance} />
+        <General stats={stats} monthly={monthly} />
       ) : tab === 'fuel' ? (
         <Fuel data={data} stats={stats} monthly={monthly} />
       ) : tab === 'expense' ? (
         <Expense data={data} stats={stats} monthly={monthly} />
       ) : tab === 'income' ? (
         <IncomeTab data={data} stats={stats} monthly={monthly} />
-      ) : (
+      ) : tab === 'service' ? (
         <Service data={data} monthly={monthly} />
+      ) : (
+        <Mileage stats={stats} intervalStats={mileageStats} distance={distance} />
       )}
     </div>
   )
 }
 
-function General({ stats, monthly, distance }: { stats: Stats; monthly: MonthlyRow[]; distance: DistancePoint[] }) {
+function General({ stats, monthly }: { stats: Stats; monthly: MonthlyRow[] }) {
   const service = monthly.reduce((s, x) => s + x.service, 0)
   const expense = monthly.reduce((s, x) => s + x.expense, 0)
   return (
@@ -193,7 +201,6 @@ function General({ stats, monthly, distance }: { stats: Stats; monthly: MonthlyR
         <Card label="Приход" value={money(stats.totalIncome)} color={ENTRY_COLORS.income} Icon={IconIncome} />
       </div>
       <MonthlyChart monthly={monthly} stacked title="Разходи по месеци" />
-      <DistanceChart points={distance} />
       <Donut title="Сравнение на разходите" buckets={[
         { name: 'Гориво', total: stats.totalFuelCost },
         { name: 'Сервиз', total: service },
@@ -385,6 +392,32 @@ function Service({ data, monthly }: { data: AllData; monthly: MonthlyRow[] }) {
       )}
       <MonthlyChart monthly={monthly} dataKey="service" title="Сервиз по месеци" color={ENTRY_COLORS.service} label="Сервиз" />
       {cats.length > 0 && <Donut title="По вид дейност" buckets={cats} />}
+    </>
+  )
+}
+
+function Mileage({ stats, intervalStats, distance }: { stats: Stats; intervalStats: DistanceIntervalStats; distance: DistancePoint[] }) {
+  return (
+    <>
+      <div className={styles.cards}>
+        <Card label="Текущ километраж" value={km(stats.currentOdometer)} accent color={ENTRY_COLORS.odometer} Icon={IconOdometer} />
+        <Card label="Пробег" value={km(stats.totalDistance)} />
+      </div>
+      <div className={styles.cards}>
+        <Card label="Ср. на ден" value={stats.daysSpan > 0 ? km(stats.totalDistance / stats.daysSpan) : '—'} />
+        <Card label="Отчитания" value={String(intervalStats.count)} />
+      </div>
+      {intervalStats.count > 0 && (
+        <div className={`card ${styles.tank}`}>
+          <div className={styles.tankHead}>Отчитания</div>
+          <div className={styles.tankGrid2}>
+            <Mini label="Брой отчитания" value={String(intervalStats.count)} />
+            <Mini label="Ср. дни между отчитанията" value={intervalStats.avgDaysBetween !== null ? num(intervalStats.avgDaysBetween, 1) : '—'} />
+            <Mini label="Ср. км между отчитанията" value={intervalStats.avgKmBetween !== null ? km(Math.round(intervalStats.avgKmBetween)) : '—'} />
+          </div>
+        </div>
+      )}
+      <DistanceChart points={distance} />
     </>
   )
 }
