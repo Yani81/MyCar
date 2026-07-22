@@ -99,8 +99,7 @@ export interface DistancePoint {
   km: number
 }
 
-/** Обединени (дата, одометър) точки от петте източника, дедупнати по дата (max на деня), сортирани.
- *  Споделена основа за distanceTrend и distanceIntervalStats. */
+/** Обединени (дата, одометър) точки от петте източника, дедупнати по дата (max на деня), сортирани. */
 const mergedOdometerPoints = (v: Vehicle, d: AllData, periodBounded: boolean): { date: string; odo: number }[] => {
   const raw: { date: string; odo: number }[] = [
     ...d.refuels.map((r) => ({ date: r.date, odo: r.odometer })),
@@ -139,25 +138,6 @@ export const distanceTrend = (v: Vehicle, d: AllData, periodBounded = false): Di
   return out
 }
 
-export interface DistanceIntervalStats {
-  count: number
-  avgDaysBetween: number | null
-  avgKmBetween: number | null
-}
-
-/** Статистика на интервалите между отчитанията на одометъра: период първо→последно ÷ (брой − 1). */
-export const distanceIntervalStats = (v: Vehicle, d: AllData, periodBounded = false): DistanceIntervalStats => {
-  const points = mergedOdometerPoints(v, d, periodBounded)
-  const count = points.length
-  if (count < 2) return { count, avgDaysBetween: null, avgKmBetween: null }
-  const spanDays = Math.round((new Date(points[count - 1].date).getTime() - new Date(points[0].date).getTime()) / 86400000)
-  const kmSpan = points[count - 1].odo - points[0].odo
-  return {
-    count,
-    avgDaysBetween: spanDays > 0 ? spanDays / (count - 1) : null,
-    avgKmBetween: kmSpan > 0 ? kmSpan / (count - 1) : null,
-  }
-}
 
 export interface FuelStats {
   fuel: FuelType

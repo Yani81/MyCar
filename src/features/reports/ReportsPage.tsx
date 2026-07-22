@@ -7,8 +7,8 @@ import styles from './ReportsPage.module.css'
 import { useStore, useActiveVehicle } from '../../store/useStore'
 import {
   computeStats, computeConsumption, monthlySpend, expensesByCategory, incomesByCategory,
-  refuelsByStation, fuelPriceTrend, refuelIntervalStats, recordIntervalStats, distanceTrend, distanceIntervalStats,
-  type AllData, type NamedBucket, type DistancePoint, type DistanceIntervalStats,
+  refuelsByStation, fuelPriceTrend, refuelIntervalStats, recordIntervalStats, distanceTrend,
+  type AllData, type NamedBucket, type DistancePoint,
 } from '../../lib/calculations'
 import { consUnitLabel, FUEL_UNITS, ENTRY_COLORS } from '../../types'
 import { money, num, numFixed, monthLabel, dateShort, km } from '../../lib/format'
@@ -98,11 +98,6 @@ export function ReportsPage() {
     [v, data, rangeOption]
   )
 
-  const mileageStats: DistanceIntervalStats = useMemo(
-    () => (v && data ? distanceIntervalStats(v, data, rangeOption !== 'all') : { count: 0, avgDaysBetween: null, avgKmBetween: null }),
-    [v, data, rangeOption]
-  )
-
   if (!v || !data || !stats) return null
   const hasData = stats.refuelCount > 0 || stats.totalExpenseCost > 0 || stats.totalIncome > 0
 
@@ -183,7 +178,7 @@ export function ReportsPage() {
       ) : tab === 'service' ? (
         <Service data={data} monthly={monthly} />
       ) : (
-        <Mileage stats={stats} intervalStats={mileageStats} distance={distance} />
+        <Mileage stats={stats} distance={distance} />
       )}
     </div>
   )
@@ -396,27 +391,22 @@ function Service({ data, monthly }: { data: AllData; monthly: MonthlyRow[] }) {
   )
 }
 
-function Mileage({ stats, intervalStats, distance }: { stats: Stats; intervalStats: DistanceIntervalStats; distance: DistancePoint[] }) {
+function Mileage({ stats, distance }: { stats: Stats; distance: DistancePoint[] }) {
+  const perDay = stats.daysSpan > 0 ? stats.totalDistance / stats.daysSpan : null
   return (
     <>
       <div className={styles.cards}>
         <Card label="Текущ километраж" value={km(stats.currentOdometer)} accent color={ENTRY_COLORS.odometer} Icon={IconOdometer} />
         <Card label="Пробег" value={km(stats.totalDistance)} />
       </div>
-      <div className={styles.cards}>
-        <Card label="Ср. на ден" value={stats.daysSpan > 0 ? km(stats.totalDistance / stats.daysSpan) : '—'} />
-        <Card label="Отчитания" value={String(intervalStats.count)} />
-      </div>
-      {intervalStats.count > 0 && (
-        <div className={`card ${styles.tank}`}>
-          <div className={styles.tankHead}>Отчитания</div>
-          <div className={styles.tankGrid2}>
-            <Mini label="Брой отчитания" value={String(intervalStats.count)} />
-            <Mini label="Ср. дни между отчитанията" value={intervalStats.avgDaysBetween !== null ? num(intervalStats.avgDaysBetween, 1) : '—'} />
-            <Mini label="Ср. км между отчитанията" value={intervalStats.avgKmBetween !== null ? km(Math.round(intervalStats.avgKmBetween)) : '—'} />
-          </div>
+      <div className={`card ${styles.tank}`}>
+        <div className={styles.tankHead}>Среден пробег</div>
+        <div className={styles.tankGrid}>
+          <Mini label="На ден" value={perDay !== null ? km(perDay) : '—'} />
+          <Mini label="На месец" value={perDay !== null && stats.daysSpan >= 30 ? km(perDay * 30) : '—'} />
+          <Mini label="На година" value={perDay !== null && stats.daysSpan >= 365 ? km(perDay * 365) : '—'} />
         </div>
-      )}
+      </div>
       <DistanceChart points={distance} />
     </>
   )
