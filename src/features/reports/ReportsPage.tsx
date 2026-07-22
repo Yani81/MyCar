@@ -11,7 +11,7 @@ import {
   type AllData, type NamedBucket, type DistancePoint,
 } from '../../lib/calculations'
 import { consUnitLabel, FUEL_UNITS, ENTRY_COLORS } from '../../types'
-import { money, num, numFixed, monthLabel, dateShort, km } from '../../lib/format'
+import { money, num, numFixed, monthLabel, monthKey, dateShort, km } from '../../lib/format'
 import { IconIncome, IconRoute, IconWrench, IconFuel, IconChart, IconOdometer } from '../../components/Layout/icons'
 import { Modal } from '../../components/ui/Modal'
 import { Field, Row, inputClass } from '../../components/ui/Field'
@@ -207,16 +207,37 @@ function General({ stats, monthly }: { stats: Stats; monthly: MonthlyRow[] }) {
 
 function DistanceChart({ points }: { points: DistancePoint[] }) {
   if (points.length < 2) return null
+
+  // Км за месеца на всяка точка (делта спрямо края на предходния месец) —
+  // показва се в tooltip-а вместо кумулативната стойност.
+  const lastOfMonth = new Map<string, number>()
+  points.forEach((p) => lastOfMonth.set(monthKey(p.date), p.km))
+  const monthKeys = [...lastOfMonth.keys()].sort()
+  const monthKm = new Map<string, number>()
+  let prev = 0
+  monthKeys.forEach((k) => {
+    const cur = lastOfMonth.get(k)!
+    monthKm.set(k, Math.max(0, cur - prev))
+    prev = cur
+  })
+  const data = points.map((p) => ({ ...p, monthKm: monthKm.get(monthKey(p.date)) ?? 0 }))
+
   return (
     <>
       <div className="section-title">Пробег</div>
       <div className={`card ${styles.chartCard}`}>
         <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={points} margin={{ top: 6, right: 0, left: -18, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 6, right: 0, left: -18, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" />
             <XAxis dataKey="date" tickFormatter={dateShort} tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <Tooltip cursor={{ stroke: 'var(--border)' }} contentStyle={tooltipStyle} labelFormatter={dateShort} formatter={(val: number) => km(val)} labelStyle={{ color: 'var(--muted)' }} />
+            <Tooltip
+              cursor={{ stroke: 'var(--border)' }}
+              contentStyle={tooltipStyle}
+              labelFormatter={(date: string) => monthLabel(monthKey(date))}
+              formatter={(_: number, __: string, props: { payload?: { monthKm: number } }) => [km(props.payload?.monthKm ?? 0), 'Пробег през месеца']}
+              labelStyle={{ color: 'var(--muted)' }}
+            />
             <Line dataKey="km" name="Пробег" stroke={ENTRY_COLORS.trip} strokeWidth={2} dot={false} type="monotone" />
           </LineChart>
         </ResponsiveContainer>
