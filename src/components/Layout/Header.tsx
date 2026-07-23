@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import styles from './Header.module.css'
-import { IconChevron, IconCar, IconTrash, IconPencil, IconMenu, IconGear, IconUser, IconGauge, IconDocument, IconBell, IconMoon, IconDownload, IconInfo } from './icons'
+import { IconChevron, IconCar, IconTrash, IconPencil, IconMenu, IconGear, IconUser, IconGauge, IconDocument, IconBell, IconMoon, IconDownload, IconInfo, IconCards } from './icons'
 import { Modal } from '../ui/Modal'
 import { Field, Row, inputClass, selectClass, Segmented, CheckGroup } from '../ui/Field'
 import { useStore, useActiveVehicle } from '../../store/useStore'
@@ -12,8 +12,9 @@ import { saveToCloud, getLastSyncAt } from '../../lib/sync'
 import { supabase } from '../../lib/supabase'
 import type { Tab } from './BottomNav'
 import { normalizePlate } from '../../lib/plate'
+import { CardsPage } from '../../features/cards/CardsPage'
 
-type ModalView = 'none' | 'garage' | 'add' | 'edit' | 'settings' | 'account' | 'export' | 'set-theme' | 'set-notify' | 'set-backup' | 'about'
+type ModalView = 'none' | 'garage' | 'add' | 'edit' | 'settings' | 'account' | 'export' | 'set-theme' | 'set-notify' | 'set-backup' | 'about' | 'cards'
 
 export function Header({ go }: { go: (t: Tab) => void }) {
   const vehicles = useStore((s) => s.vehicles)
@@ -57,6 +58,7 @@ export function Header({ go }: { go: (t: Tab) => void }) {
       trips: s.trips,
       readings: s.readings,
       reminders: s.reminders,
+      discountCards: s.discountCards,
       activeVehicleId: s.activeVehicleId,
       theme: s.theme,
       notifyDaysAhead: s.notifyDaysAhead,
@@ -91,6 +93,7 @@ export function Header({ go }: { go: (t: Tab) => void }) {
   const menuItems: { label: string; Icon: typeof IconGauge; action: () => void }[] = [
     { label: 'Табло', Icon: IconGauge, action: () => go('dashboard') },
     { label: 'Гараж', Icon: IconCar, action: () => setModal('garage') },
+    { label: 'Карти за отстъпки', Icon: IconCards, action: () => setModal('cards') },
     { label: 'Доклади', Icon: IconDocument, action: () => setModal('export') },
     { label: 'Настройки', Icon: IconGear, action: () => setModal('settings') },
     { label: 'Акаунт', Icon: IconUser, action: () => setModal('account') },
@@ -107,6 +110,7 @@ export function Header({ go }: { go: (t: Tab) => void }) {
       trips: s.trips,
       readings: s.readings,
       reminders: s.reminders,
+      discountCards: s.discountCards,
       activeVehicleId: s.activeVehicleId,
       theme: s.theme,
       vehicleChecks: s.vehicleChecks,
@@ -128,6 +132,7 @@ export function Header({ go }: { go: (t: Tab) => void }) {
         trips: data.trips,
         readings: data.readings,
         reminders: data.reminders,
+        discountCards: data.discountCards,
         activeVehicleId: data.vehicles.some((v) => v.id === data.activeVehicleId)
           ? data.activeVehicleId
           : data.vehicles[0].id,
@@ -319,6 +324,9 @@ export function Header({ go }: { go: (t: Tab) => void }) {
 
         <button className={styles.ghost} onClick={() => setModal('add')}>+ Нов автомобил</button>
       </Modal>
+
+      {/* ── Карти за отстъпки ── */}
+      <CardsPage open={modal === 'cards'} onClose={() => setModal('none')} />
 
       {/* ── Настройки (списък) ── */}
       <Modal open={modal === 'settings'} title="Настройки" onClose={() => setModal('none')}>

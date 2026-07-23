@@ -6,6 +6,7 @@ import type {
   Trip,
   OdometerReading,
   Reminder,
+  DiscountCard,
   VehicleChecks,
 } from '../types'
 import type { Theme } from '../store/useStore'
@@ -21,6 +22,7 @@ export interface BackupData {
   trips: Trip[]
   readings: OdometerReading[]
   reminders: Reminder[]
+  discountCards: DiscountCard[]
   activeVehicleId: string | null
   theme: Theme
   vehicleChecks: Record<string, VehicleChecks>
@@ -56,6 +58,7 @@ export function parseBackupJSON(text: string): BackupData {
     trips: data.trips,
     readings: data.readings,
     reminders: data.reminders,
+    discountCards: Array.isArray(data.discountCards) ? data.discountCards : [],
     activeVehicleId: typeof data.activeVehicleId === 'string' ? data.activeVehicleId : null,
     theme: data.theme === 'dark' || data.theme === 'auto' ? data.theme : 'light',
     vehicleChecks: data.vehicleChecks && typeof data.vehicleChecks === 'object' ? data.vehicleChecks : {},

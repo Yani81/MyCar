@@ -127,6 +127,18 @@ export interface Reminder {
   notes?: string
 }
 
+export type BarcodeFormat = 'code128' | 'qr'
+
+/** Глобална карта за отстъпки (не е свързана с конкретно МПС). */
+export interface DiscountCard {
+  id: string
+  name: string
+  code: string
+  format?: BarcodeFormat
+  photo?: string
+  notes?: string
+}
+
 export const FUEL_LABELS: Record<FuelType, string> = {
   petrol: 'Бензин',
   diesel: 'Дизел',

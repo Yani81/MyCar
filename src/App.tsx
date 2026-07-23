@@ -68,6 +68,7 @@ export default function App() {
           trips: s.trips,
           readings: s.readings,
           reminders: s.reminders,
+          discountCards: s.discountCards,
           activeVehicleId: s.activeVehicleId,
           theme: s.theme,
           notifyDaysAhead: s.notifyDaysAhead,

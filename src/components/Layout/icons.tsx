@@ -114,6 +114,13 @@ export const IconTrash = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+export const IconCards = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="M3 10h18" />
+    <path d="M6 15h4" />
+  </svg>
+)
 export const IconIncome = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <rect x="2" y="6" width="20" height="12" rx="2" />

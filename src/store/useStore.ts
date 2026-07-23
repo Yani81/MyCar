@@ -8,6 +8,7 @@ import type {
   Trip,
   OdometerReading,
   Reminder,
+  DiscountCard,
   FuelType,
   VehicleChecks,
   VehicleCheckResult,
@@ -27,6 +28,7 @@ interface State {
   trips: Trip[]
   readings: OdometerReading[]
   reminders: Reminder[]
+  discountCards: DiscountCard[]
   activeVehicleId: string | null
   theme: Theme
   /** Дни предварително за известия от напомнянията; 0 = изключени */
@@ -65,6 +67,10 @@ interface State {
   updateReminder: (id: string, patch: Partial<Reminder>) => void
   removeReminder: (id: string) => void
 
+  addDiscountCard: (c: Omit<DiscountCard, 'id'>) => void
+  updateDiscountCard: (id: string, patch: Partial<DiscountCard>) => void
+  removeDiscountCard: (id: string) => void
+
   vehicleChecks: Record<string, VehicleChecks>
   saveCheck: (vehicleId: string, type: keyof VehicleChecks, result: VehicleCheckResult) => void
 
@@ -92,7 +98,7 @@ const defaultVehicle = (): Vehicle => ({
 })
 
 type Identified = { id: string }
-type ListKeys = 'vehicles' | 'refuels' | 'expenses' | 'incomes' | 'trips' | 'readings' | 'reminders'
+type ListKeys = 'vehicles' | 'refuels' | 'expenses' | 'incomes' | 'trips' | 'readings' | 'reminders' | 'discountCards'
 
 export const useStore = create<State>()(
   persist(
@@ -119,6 +125,7 @@ export const useStore = create<State>()(
         trips: [],
         readings: [],
         reminders: [],
+        discountCards: [],
         activeVehicleId: v0.id,
         theme: 'light',
         notifyDaysAhead: 7,
@@ -201,6 +208,19 @@ export const useStore = create<State>()(
         updateReminder: upd('reminders'),
         removeReminder: del('reminders'),
 
+        addDiscountCard: (c) => set((s) => ({ discountCards: [...s.discountCards, { ...c, id: uid() }] })),
+        updateDiscountCard: (id, patch) => {
+          if ('photo' in patch) {
+            const old = get().discountCards.find((x) => x.id === id)?.photo
+            if (old && old !== patch.photo) deleteReceipt(old)
+          }
+          upd('discountCards')(id, patch)
+        },
+        removeDiscountCard: (id) => {
+          deleteReceipt(get().discountCards.find((x) => x.id === id)?.photo)
+          del('discountCards')(id)
+        },
+
         vehicleChecks: {},
         saveCheck: (vehicleId, type, result) =>
           set((s) => ({
@@ -269,6 +289,7 @@ useStore.subscribe(() => {
           trips: s.trips,
           readings: s.readings,
           reminders: s.reminders,
+          discountCards: s.discountCards,
           activeVehicleId: s.activeVehicleId,
           theme: s.theme,
           notifyDaysAhead: s.notifyDaysAhead,

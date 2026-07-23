@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Vehicle, Refuel, Expense, Income, Trip, OdometerReading, Reminder } from '../types'
+import type { Vehicle, Refuel, Expense, Income, Trip, OdometerReading, Reminder, DiscountCard } from '../types'
 
 export type StoreData = {
   vehicles: Vehicle[]
@@ -9,6 +9,7 @@ export type StoreData = {
   trips: Trip[]
   readings: OdometerReading[]
   reminders: Reminder[]
+  discountCards: DiscountCard[]
   activeVehicleId: string | null
   theme: 'auto' | 'light' | 'dark'
   notifyDaysAhead?: number
@@ -19,7 +20,7 @@ let lastSeenUpdatedAt: string | null = null
 
 export const getLastSyncAt = (): string | null => lastSeenUpdatedAt
 
-const LIST_KEYS = ['vehicles', 'refuels', 'expenses', 'incomes', 'trips', 'readings', 'reminders'] as const
+const LIST_KEYS = ['vehicles', 'refuels', 'expenses', 'incomes', 'trips', 'readings', 'reminders', 'discountCards'] as const
 
 /**
  * Слива remote и local при конфликт: union по id, при съвпадение печели локалният запис.
@@ -94,7 +95,7 @@ export async function refreshFromCloudIfNewer(): Promise<void> {
   const s = useStore.getState()
   const local: StoreData = {
     vehicles: s.vehicles, refuels: s.refuels, expenses: s.expenses, incomes: s.incomes,
-    trips: s.trips, readings: s.readings, reminders: s.reminders,
+    trips: s.trips, readings: s.readings, reminders: s.reminders, discountCards: s.discountCards,
     activeVehicleId: s.activeVehicleId, theme: s.theme, notifyDaysAhead: s.notifyDaysAhead,
   }
   // Идентични данни (напр. нашият собствен запис) → не пипай store-а, за да не тръгне нов save
